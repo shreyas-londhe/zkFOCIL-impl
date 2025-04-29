@@ -1,5 +1,5 @@
 #!/bin/bash
-source $(git rev-parse --show-toplevel)/ci3/source
+source $(git rev-parse --show-toplevel)/bberg/ci3/source
 
 cd ..
 

@@ -27,7 +27,7 @@ function filter_noise() {
 }
 
 report_when_anvil_up &
-STATE_DIR="$(git rev-parse --show-toplevel)/yarn-project/end-to-end/scripts/native-network/state"
+STATE_DIR="$(git rev-parse --show-toplevel)/bberg/yarn-project/end-to-end/scripts/native-network/state"
 STATE_FILE="$STATE_DIR/state.json"
 
 mkdir -p "$STATE_DIR"

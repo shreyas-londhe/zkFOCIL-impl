@@ -2,7 +2,7 @@
 # Within failure_contracts, we have contracts that should fail compilation due to code in the macros
 # This script will test that compilation fails for each of the contracts in failure_contracts
 
-REPO=$(git rev-parse --show-toplevel)
+REPO="$(git rev-parse --show-toplevel)/bberg"
 NARGO=${NARGO:-"$REPO/noir/noir-repo/target/release/nargo"}
 
 # Colors for output

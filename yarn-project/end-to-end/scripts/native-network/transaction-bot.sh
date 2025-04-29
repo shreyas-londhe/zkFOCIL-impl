@@ -12,7 +12,7 @@ export BOT_PXE_URL=${BOT_PXE_URL:-"http://127.0.0.1:8079"}
 exec > >(tee -a "$(dirname $0)/logs/${SCRIPT_NAME}.log") 2> >(tee -a "$(dirname $0)/logs/${SCRIPT_NAME}.log" >&2)
 
 # Starts the transaction bot
-REPO=$(git rev-parse --show-toplevel)
+REPO="$(git rev-parse --show-toplevel)/bberg"
 
 echo "Waiting for Aztec Node..."
 until curl -s http://127.0.0.1:8080/status >/dev/null; do

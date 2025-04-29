@@ -176,7 +176,7 @@ jobs:
         id: generate-eth-devnet-config
         if: ${{ inputs.sepolia_deployment != 'true' }}
         run: |
-          REPO=$(git rev-parse --show-toplevel)
+          REPO=$(git rev-parse --show-toplevel)/bberg
 
           export MNEMONIC="${{ steps.get-mnemonic.outputs.mnemonic }}"
 
@@ -186,7 +186,7 @@ jobs:
         id: generate-sepolia-accounts
         if: ${{ inputs.sepolia_deployment == 'true' }}
         run: |
-          REPO=$(git rev-parse --show-toplevel)
+          REPO=$(git rev-parse --show-toplevel)/bberg
           export FUNDING_PRIVATE_KEY=${{ secrets.SEPOLIA_FUNDING_PRIVATE_KEY }}
           export ETHEREUM_HOST="https://json-rpc.${{ secrets.GCP_SEPOLIA_URL }}?key=${{ secrets.GCP_SEPOLIA_API_KEY }}"
           echo "Preparing sepolia accounts..."

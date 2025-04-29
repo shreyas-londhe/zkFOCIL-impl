@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Performs the client ivc private transaction proving benchmarks for our 'realistic apps'.
 # This is called by yarn-project/end-to-end/bootstrap.sh bench, which creates these inputs from end-to-end tests.
-source $(git rev-parse --show-toplevel)/ci3/source
+source $(git rev-parse --show-toplevel)/bberg/ci3/source
 
 if [[ $# -ne 2 ]]; then
   echo "Usage: $0 <bench_input_folder> <benchmark_output>"

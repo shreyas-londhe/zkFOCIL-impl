@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Working directory independent.
-cd $(git rev-parse --show-toplevel)/yarn-project/l1-artifacts
+cd $(git rev-parse --show-toplevel)/bberg/yarn-project/l1-artifacts
 
 # Contracts name list (all assumed to be in l1-contracts).
 # This script writes into the src/ folder:

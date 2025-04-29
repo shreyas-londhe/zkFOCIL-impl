@@ -4,7 +4,7 @@
 
 set -ex
 
-REPO=$(git rev-parse --show-toplevel)
+REPO="$(git rev-parse --show-toplevel)/bberg"
 
 configfile=$1
 outputfile=$2

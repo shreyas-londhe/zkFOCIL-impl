@@ -8,7 +8,7 @@
 # The host repository is mounted in read-only, and a clone is taken to ensure a clean start.
 # We set SSH_CONNECTION to something, to ensure the hostname is shown in our lean prompt.
 # If anything goes wrong during the run, the container will drop into a shell.
-source $(git rev-parse --show-toplevel)/ci3/source
+source $(git rev-parse --show-toplevel)/bberg/ci3/source
 
 cmd=${1:-"./bootstrap.sh ci || exec zsh"}
 

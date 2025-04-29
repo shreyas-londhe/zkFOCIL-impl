@@ -2,7 +2,7 @@
 
 set -e
 
-REPO=$(git rev-parse --show-toplevel)
+REPO="$(git rev-parse --show-toplevel)/bberg"
 
 output_file="$REPO/yarn-project/p2p/bench-out/p2p-bench.json"
 result="[]"

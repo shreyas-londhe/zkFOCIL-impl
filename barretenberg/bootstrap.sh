@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source $(git rev-parse --show-toplevel)/ci3/source
+source $(git rev-parse --show-toplevel)/bberg/ci3/source
 
 function bootstrap_all {
   # To run bb we need a crs.

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Use ci3 script base.
-source $(git rev-parse --show-toplevel)/ci3/source_bootstrap
+source $(git rev-parse --show-toplevel)/bberg/ci3/source_bootstrap
 
 cmd=${1:-}
 hash=$(cache_content_hash ../cpp/.rebuild_patterns .rebuild_patterns)

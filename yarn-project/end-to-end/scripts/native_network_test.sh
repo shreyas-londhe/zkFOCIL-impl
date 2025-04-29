@@ -18,7 +18,7 @@ set -eu
 # Ensure dependencies are installed
 command -v anvil >/dev/null || (echo "We need 'anvil' installed to be able to simulate ethereum" && exit 1)
 
-REPO=$(git rev-parse --show-toplevel)
+REPO="$(git rev-parse --show-toplevel)/bberg"
 
 if ! command -v node &> /dev/null; then
     echo "Node.js is not installed. Please install Node.js version 18 (exactly!)."

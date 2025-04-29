@@ -54,8 +54,8 @@ It's worth looking at the scripts to see what commands they export. They are all
 You can do yourself a small favour and add the following aliases to your `~/.zshrc`. The following documentation will assume they're there.
 
 ```
-alias ci='$(git rev-parse --show-toplevel)/ci.sh'
-alias dl='$(git rev-parse --show-toplevel)/ci.sh dlog'
+alias ci='$(git rev-parse --show-toplevel)/bberg/ci.sh'
+alias dl='$(git rev-parse --show-toplevel)/bberg/ci.sh dlog'
 ```
 
 This will enable running the ci script simply with `ci <cmd>`, and being able to view denoised logs with `dl <id>`.

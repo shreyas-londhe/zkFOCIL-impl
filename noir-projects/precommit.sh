@@ -37,7 +37,7 @@ if [[ -n "$staged_nr_files" ]]; then
 
   # Re-stage formatted .nr files
   echo "Re-staging formatted .nr files..."
-  repo_root=$(git rev-parse --show-toplevel)
+  repo_root="$(git rev-parse --show-toplevel)/bberg"
   echo "$staged_nr_files" | xargs -I {} git add "$repo_root/{}"
 fi
 

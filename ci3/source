@@ -1,4 +1,4 @@
-# Usage: source $(git rev-parse --show-toplevel)/ci3/source
+# Usage: source $(git rev-parse --show-toplevel)/bberg/ci3/source
 # This is a basis for shell scripts that use the ci3 framework.
 # This can be sourced multiple by scripts calling scripts, so it makes sense to only do certain sets through first pass.
 
@@ -6,7 +6,7 @@
 [ -z "${NO_CD:-}" ] && cd "$(dirname $0)"
 
 # We export so we can use from exported functions.
-export root=${root:-$(git rev-parse --show-toplevel)}
+export root=${root:-$(git rev-parse --show-toplevel)/bberg}
 export ci3="$root/ci3"
 [[ "$PATH" != *"$ci3:" ]] && export PATH=$ci3:$PATH
 

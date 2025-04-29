@@ -14,7 +14,7 @@ ADDRESS="${3:-${ADDRESS:-}}"
 validator_private_key="${4:-${VALIDATOR_PRIVATE_KEY:-}}"
 
 # Starts the Validator Node
-REPO=$(git rev-parse --show-toplevel)
+REPO="$(git rev-parse --show-toplevel)/bberg"
 
 echo "Waiting for l1 contracts to be deployed..."
 until [ -f "$REPO"/yarn-project/end-to-end/scripts/native-network/state/l1-contracts.env ]; do

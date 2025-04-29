@@ -35,7 +35,7 @@
 # This test validates that the network can maintain functionality during a staged upgrade
 # process where some components are replaced while others remain operational.
 
-source $(git rev-parse --show-toplevel)/ci3/source
+source $(git rev-parse --show-toplevel)/bberg/ci3/source
 
 export NAMESPACE=${NAMESPACE:-prod}
 release=original

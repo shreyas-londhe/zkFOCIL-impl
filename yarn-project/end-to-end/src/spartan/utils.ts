@@ -638,7 +638,7 @@ export function getGitProjectRoot(): string {
       stdio: ['ignore', 'pipe', 'ignore'],
     }).trim();
 
-    return rootDir;
+    return `${rootDir}/bberg`;
   } catch (error) {
     throw new Error(`Failed to determine git project root: ${error}`);
   }

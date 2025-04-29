@@ -157,7 +157,7 @@ else
 fi
 
 # Go to repo root
-cd $(git rev-parse --show-toplevel)
+cd $(git rev-parse --show-toplevel)/bberg
 
 # Base command
 BASE_CMD="INTERLEAVED=$INTERLEAVED ./yarn-project/end-to-end/scripts/native_network_test.sh \

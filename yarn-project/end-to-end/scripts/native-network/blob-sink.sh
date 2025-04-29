@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -eu
 
-REPO=$(git rev-parse --show-toplevel)
+REPO="$(git rev-parse --show-toplevel)/bberg"
 
 # Starts the Blob Sink
 export BLOB_SINK_PORT=${BLOB_SINK_PORT:-5053}

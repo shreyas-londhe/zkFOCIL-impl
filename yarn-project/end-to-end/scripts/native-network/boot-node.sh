@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -eu
 
-REPO=$(git rev-parse --show-toplevel)
+REPO="$(git rev-parse --show-toplevel)/bberg"
 
 # Get the name of the script without the path and extension
 SCRIPT_NAME=$(basename "$0" .sh)

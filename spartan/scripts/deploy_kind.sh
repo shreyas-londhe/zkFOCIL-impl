@@ -13,7 +13,7 @@
 # Note on OVERRIDES:
 # You can use like OVERRIDES="replicas=3,resources.limits.cpu=1"
 
-source $(git rev-parse --show-toplevel)/ci3/source
+source $(git rev-parse --show-toplevel)/bberg/ci3/source
 
 set -x
 

@@ -7,7 +7,7 @@ docker run --rm \
   -d \
   --privileged \
   --name $1 \
-  -v$(git rev-parse --show-toplevel):/home/ubuntu/aztec-packages:ro \
+  -v$(git rev-parse --show-toplevel)/bberg:/home/ubuntu/aztec-packages:ro \
   -v$HOME/.bb-crs:/home/ubuntu/.bb-crs \
   --mount type=tmpfs,target=/var/lib/docker,tmpfs-size=4g \
   aztecprotocol/dind \

@@ -12,7 +12,7 @@ export BOOTNODE_URL=${BOOTNODE_URL:-http://127.0.0.1:8080}
 export PXE_URL=${PXE_URL:-http://127.0.0.1:8079}
 export ETHEREUM_HOSTS=${ETHEREUM_HOSTS:-http://127.0.0.1:8545}
 
-REPO=$(git rev-parse --show-toplevel)
+REPO="$(git rev-parse --show-toplevel)/bberg"
 # Run our test assuming the port in pxe.sh
 # Wait for the Aztec Node to be ready
 echo "Waiting for Aztec Node..."
@@ -32,5 +32,5 @@ done
 echo "Done waiting."
 
 export LOG_LEVEL=${LOG_LEVEL:-"verbose"}
-cd $(git rev-parse --show-toplevel)/yarn-project/end-to-end
+cd $(git rev-parse --show-toplevel)/bberg/yarn-project/end-to-end
 yarn test src/spartan/4epochs.test.ts

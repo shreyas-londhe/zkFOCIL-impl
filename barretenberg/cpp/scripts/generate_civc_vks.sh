@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source $(git rev-parse --show-toplevel)/ci3/source
+source $(git rev-parse --show-toplevel)/bberg/ci3/source
 
 if [ $# -ne 2 ]; then
   echo "Usage: $0 <input_folder> <output_folder>"

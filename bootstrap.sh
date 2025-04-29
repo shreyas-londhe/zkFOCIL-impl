@@ -5,7 +5,7 @@
 #   check: Check required toolchains and versions are installed.
 #   clean: Force a complete clean of the repo. Erases untracked files, be careful!
 # Use ci3 script base.
-source $(git rev-parse --show-toplevel)/ci3/source_bootstrap
+source $(git rev-parse --show-toplevel)/bberg/ci3/source_bootstrap
 
 # Enable abbreviated output by default.
 export DENOISE=${DENOISE:-1}

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -eu
-source $(git rev-parse --show-toplevel)/ci3/source_bootstrap
+source $(git rev-parse --show-toplevel)/bberg/ci3/source_bootstrap
 
 export BB=${BB:-../../barretenberg/cpp/build/bin/bb}
 export NARGO=${NARGO:-$(realpath ../../noir/noir-repo/target/release/nargo)}

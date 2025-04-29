@@ -43,7 +43,7 @@ if [[ -z "$PROJECT_ID" ]]; then
     exit 1
 fi
 
-ROOT=$(git rev-parse --show-toplevel)/iac/network
+ROOT=$(git rev-parse --show-toplevel)/bberg/iac/network
 
 # First we create an SSH key and store to a GCP secret
 cd $ROOT/ssh

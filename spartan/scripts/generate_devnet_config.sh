@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source $(git rev-parse --show-toplevel)/ci3/source
+source $(git rev-parse --show-toplevel)/bberg/ci3/source
 
 values_file="$1"
 value_yamls="../aztec-network/values/$values_file ../aztec-network/values.yaml"

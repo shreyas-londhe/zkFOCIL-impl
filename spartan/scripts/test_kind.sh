@@ -17,7 +17,7 @@
 #   AZTEC_DOCKER_TAG (default: current git commit)
 #   INSTALL_TIMEOUT (default: 30m)
 
-source $(git rev-parse --show-toplevel)/ci3/source
+source $(git rev-parse --show-toplevel)/bberg/ci3/source
 
 set -x
 

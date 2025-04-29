@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source $(git rev-parse --show-toplevel)/ci3/source_bootstrap
+source $(git rev-parse --show-toplevel)/bberg/ci3/source_bootstrap
 
 cmd=${1:-}
 export CRS_PATH=$HOME/.bb-crs

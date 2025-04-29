@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-DIR_PATH=$(git rev-parse --show-toplevel)/spartan/aztec-network/eth-devnet
+DIR_PATH=$(git rev-parse --show-toplevel)/bberg/spartan/aztec-network/eth-devnet
 
 ## Genesis path is configurable, however it defaults to the eth-devnet directory
 ## This is also the default of .Values.ethereum.genesisBasePath in values.yaml

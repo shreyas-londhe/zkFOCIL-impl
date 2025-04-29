@@ -2,7 +2,7 @@
 # This script is used to find the binary directory for a given CMake preset.
 # It reads the CMakepresets.json file and traverses the inheritance tree to find the binary directory.
 
-source $(git rev-parse --show-toplevel)/ci3/source
+source $(git rev-parse --show-toplevel)/bberg/ci3/source
 
 preset="${1:-}"
 

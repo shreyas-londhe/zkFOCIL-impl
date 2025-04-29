@@ -71,7 +71,7 @@ alias gto="gt checkout"
 
 # Fuzzy git rooted dir change on ctrl-f.
 gitcd() {
-  git_root=$(git rev-parse --show-toplevel 2> /dev/null)
+  git_root="$(git rev-parse --show-toplevel 2> /dev/null)/bberg"
   if [[ $? -eq 0 ]]; then
     local selected_dir=$(cd "$git_root" && find * -type d -not -path '*node_modules*' -not -path '.git*' | fzf)
     if [[ -n "$selected_dir" ]]; then

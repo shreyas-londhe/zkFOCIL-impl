@@ -3,7 +3,7 @@
 # It's the script used by ./bootstrap.sh test_cmds.
 # It means we can return a concise, easy to read, easy to run command for reproducing a test run.
 # TODO: --forceExit *should not be needed*. Find out what's not being cleaned up.
-source $(git rev-parse --show-toplevel)/ci3/source
+source $(git rev-parse --show-toplevel)/bberg/ci3/source
 
 test=$1
 shift 1
@@ -23,7 +23,7 @@ if [ "${ISOLATE:-0}" -eq 1 ]; then
     ${name_arg:-} \
     --cpus=$CPUS \
     --memory $MEM \
-    -v$(git rev-parse --show-toplevel):/root/aztec-packages \
+    -v$(git rev-parse --show-toplevel)/bberg:/root/aztec-packages \
     -v$HOME/.bb-crs:/root/.bb-crs \
     --workdir /root/aztec-packages/yarn-project/$dir \
     -e FORCE_COLOR=true \

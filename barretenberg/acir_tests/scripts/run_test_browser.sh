@@ -12,7 +12,7 @@ docker run --rm \
   --cpus=8 \
   --memory 8g \
   -v/tmp:/tmp \
-  -v$(git rev-parse --show-toplevel):/root/aztec-packages \
+  -v$(git rev-parse --show-toplevel)/bberg:/root/aztec-packages \
   -v$HOME/.bb-crs:/root/.bb-crs \
   --workdir /root/aztec-packages/barretenberg/acir_tests \
   -e NODE_OPTIONS="--no-warnings --experimental-vm-modules" \

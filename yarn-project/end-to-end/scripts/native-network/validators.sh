@@ -4,7 +4,7 @@ set -eu
 
 # Get the name of the script without the path and extension
 SCRIPT_NAME=$(basename "$0" .sh)
-REPO=$(git rev-parse --show-toplevel)
+REPO="$(git rev-parse --show-toplevel)/bberg"
 
 # Redirect stdout and stderr to <script_name>.log while also printing to the console
 exec > >(tee -a "$(dirname $0)/logs/${SCRIPT_NAME}.log") 2> >(tee -a "$(dirname $0)/logs/${SCRIPT_NAME}.log" >&2)
@@ -39,5 +39,5 @@ else
   echo "Running $NUM_VALIDATORS validators interleaved"
 
   # Execute the run_interleaved.sh script with the commands
-  "$(git rev-parse --show-toplevel)/scripts/run_interleaved.sh" "${CMD[@]}"
+  "$(git rev-parse --show-toplevel)/bberg/scripts/run_interleaved.sh" "${CMD[@]}"
 fi

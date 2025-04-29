@@ -6,7 +6,7 @@
 #
 # To avoid thrashing the disk, we mount /tmp as a 1gb tmpfs.
 # We separate out jests temp dir for now, as it consumes a lot of space and we want to quota /tmp independently.
-source $(git rev-parse --show-toplevel)/ci3/source
+source $(git rev-parse --show-toplevel)/bberg/ci3/source
 
 type=$1
 
@@ -20,7 +20,7 @@ case "$type" in
     # Strip leading non alpha numerics and replace / with _ for the container name.
     name="$(echo "${TEST}" | sed 's/^[^a-zA-Z0-9]*//' | tr '/' '_')${NAME_POSTFIX:-}"
     name_arg="--name $name"
-    repo_dir=$(git rev-parse --show-toplevel)
+    repo_dir="$(git rev-parse --show-toplevel)/bberg"
     trap 'docker rm -f $name &>/dev/null' SIGINT SIGTERM EXIT
     docker rm -f $name &>/dev/null || true
     docker run --rm \
