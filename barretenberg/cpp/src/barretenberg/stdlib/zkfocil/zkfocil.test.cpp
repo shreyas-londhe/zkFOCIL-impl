@@ -4,7 +4,7 @@
 #include "barretenberg/crypto/pedersen_commitment/pedersen.hpp"
 #include "barretenberg/ecc/curves/grumpkin/grumpkin.hpp"
 #include "barretenberg/stdlib_circuit_builders/ultra_circuit_builder.hpp"
-#include "schnorr.hpp"
+#include "zkfocil.hpp"
 
 using namespace bb;
 using namespace bb::crypto;
@@ -20,7 +20,7 @@ using witness_ct = stdlib::witness_t<Builder>;
  * We only test: messages signed and verified using Grumpkin and the BLAKE2s hash function. We test strings of lengths
  * 0, 1, ..., 33.
  */
-TEST(stdlib_schnorr, schnorr_verify_signature)
+TEST(stdlib_zkfocil, schnorr_verify_signature)
 {
     std::string longer_string = "This is a test string of length 34";
 
@@ -58,7 +58,7 @@ TEST(stdlib_schnorr, schnorr_verify_signature)
  * @brief Verification fails when the wrong public key is used.
  *
  */
-TEST(stdlib_schnorr, verify_signature_failure)
+TEST(stdlib_zkfocil, verify_signature_failure)
 {
     Builder builder = Builder();
     std::string message_string = "This is a test string of length 34";
@@ -97,10 +97,10 @@ TEST(stdlib_schnorr, verify_signature_failure)
 }
 
 /**
- * @test Like stdlib_schnorr.schnorr_verify_signature, but we use the function signature_verification that produces a
+ * @test Like stdlib_zkfocil.schnorr_verify_signature, but we use the function signature_verification that produces a
  * boolean witness and does not require the prover to provide a valid signature.
  */
-TEST(stdlib_schnorr, schnorr_signature_verification_result)
+TEST(stdlib_zkfocil, schnorr_signature_verification_result)
 {
     std::string longer_string = "This is a test string of length 34";
 
@@ -132,10 +132,10 @@ TEST(stdlib_schnorr, schnorr_signature_verification_result)
 }
 
 /**
- * @test Like stdlib_schnorr.verify_signature_failure, but we use the function signature_verification that produces a
+ * @test Like stdlib_zkfocil.verify_signature_failure, but we use the function signature_verification that produces a
  * boolean witness and allow for proving that a signature verification fails.
  */
-TEST(stdlib_schnorr, signature_verification_result_failure)
+TEST(stdlib_zkfocil, signature_verification_result_failure)
 {
     Builder builder = Builder();
     std::string message_string = "This is a test string of length 34";
@@ -174,7 +174,7 @@ TEST(stdlib_schnorr, signature_verification_result_failure)
     EXPECT_EQ(verification_result, true);
 }
 
-TEST(stdlib_schnorr, zkfocil_basic)
+TEST(stdlib_zkfocil, zkfocil_basic)
 {
     Builder builder = Builder();
 }
