@@ -10,55 +10,35 @@
 
 namespace bb::stdlib::zkfocil {
 
-// Define builder type (which determines the arithmetisation)
-using Builder = UltraCircuitBuilder;
-
-// Define types
-using witness_ct = stdlib::witness_t<Builder>;
-using public_witness_ct = stdlib::public_witness_t<Builder>;
-using bool_ct = stdlib::bool_t<Builder>;
-using byte_array_ct = stdlib::byte_array<Builder>;
-using field_ct = stdlib::field_t<Builder>;
-using suint_ct = stdlib::safe_uint_t<Builder>;
-using uint32_ct = stdlib::uint32<Builder>;
-using group_ct = stdlib::cycle_group<Builder>;
-using bn254 = stdlib::bn254<Builder>;
-using hash_path_ct = crypto::merkle_tree::hash_path<Builder>;
-
 // Inputs to the circuit that implements zkFOCIL
-struct zkfocil_inputs {
+template <typename Builder, typename Curve, typename Fq, typename Fr, typename G1> struct zkfocil_inputs {
+    using field_ct = stdlib::field_t<Builder>;
+    using hash_path_ct = crypto::merkle_tree::hash_path<Builder>;
+    using suint_ct = stdlib::safe_uint_t<Builder>;
+
+    // The slot identifier is a 32-byte field element (circuit-native field element, i.e., bn254::fr)
     field_ct slot_identifier;
-    field_ct secret_key;
-    group_ct public_key;
-    group_ct key_image;
+
+    // Validator secret key (bigfield element)
+    Fr secret_key;
+
+    // Validator public key (biggroup element)
+    G1 public_key;
+
+    // Key image generated from the secret key (biggroup element)
+    G1 key_image;
+
+    // Root of the Merkle tree (circuit-native field element)
     field_ct merkle_root;
+
+    // Index of the leaf in the Merkle tree (circuit-native safe uint)
     suint_ct index_in_merkle_tree;
+
+    // The Merkle path to the leaf (array of hash_path_ct)
     hash_path_ct merkle_path;
 };
 
-void zkfocil_circuit(const zkfocil_inputs& inputs);
-
-template <typename C> struct schnorr_signature_bits {
-    typename cycle_group<C>::cycle_scalar s;
-    typename cycle_group<C>::cycle_scalar e;
-};
-
-template <typename C>
-schnorr_signature_bits<C> schnorr_convert_signature(C* context, const crypto::schnorr_signature& sig);
-
-template <typename C>
-std::array<field_t<C>, 2> schnorr_verify_signature_internal(const byte_array<C>& message,
-                                                            const cycle_group<C>& pub_key,
-                                                            const schnorr_signature_bits<C>& sig);
-
-template <typename C>
-void schnorr_verify_signature(const byte_array<C>& message,
-                              const cycle_group<C>& pub_key,
-                              const schnorr_signature_bits<C>& sig);
-
-template <typename C>
-bool_t<C> schnorr_signature_verification_result(const byte_array<C>& message,
-                                                const cycle_group<C>& pub_key,
-                                                const schnorr_signature_bits<C>& sig);
+template <typename Builder, typename Curve, typename Fq, typename Fr, typename G1>
+bool_t<Builder> zkfocil_circuit(const zkfocil_inputs<Builder, Curve, Fq, Fr, G1>& inputs);
 
 } // namespace bb::stdlib::zkfocil
