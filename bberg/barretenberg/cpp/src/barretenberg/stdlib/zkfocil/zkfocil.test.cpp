@@ -17,5 +17,6 @@ using witness_ct = stdlib::witness_t<Builder>;
 
 TEST(stdlib_zkfocil, zkfocil_basic)
 {
+    // TODO: wip wip
     Builder builder = Builder();
 }
