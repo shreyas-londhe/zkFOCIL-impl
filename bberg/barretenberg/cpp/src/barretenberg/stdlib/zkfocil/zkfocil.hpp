@@ -1,4 +1,5 @@
 #pragma once
+
 #include "../primitives/bool/bool.hpp"
 #include "../primitives/byte_array/byte_array.hpp"
 #include "../primitives/field/field.hpp"
@@ -42,3 +43,5 @@ template <typename Builder, typename Curve, typename Fq, typename Fr, typename G
 bool_t<Builder> zkfocil_circuit(const zkfocil_inputs<Builder, Curve, Fq, Fr, G1>& inputs);
 
 } // namespace bb::stdlib::zkfocil
+
+#include "./zkfocil_impl.hpp"

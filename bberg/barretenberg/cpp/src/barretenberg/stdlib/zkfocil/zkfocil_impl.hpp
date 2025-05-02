@@ -1,4 +1,5 @@
-#include "zkfocil.hpp"
+#pragma once
+
 #include "barretenberg/crypto/merkle_tree/membership.hpp"
 #include "barretenberg/crypto/pedersen_commitment/pedersen.hpp"
 #include "barretenberg/ecc/curves/grumpkin/grumpkin.hpp"
@@ -6,6 +7,7 @@
 #include "barretenberg/stdlib/hash/pedersen/pedersen.hpp"
 #include "barretenberg/stdlib/primitives/circuit_builders/circuit_builders_fwd.hpp"
 #include "barretenberg/stdlib/primitives/group/cycle_group.hpp"
+#include "zkfocil.hpp"
 #include <array>
 
 namespace bb::stdlib::zkfocil {
@@ -32,25 +34,22 @@ bool_t<Builder> zkfocil_circuit(const zkfocil_inputs<Builder, Curve, Fq, Fr, G1>
     try_get_context(inputs.key_image);
     try_get_context(inputs.merkle_root);
     try_get_context(inputs.index_in_merkle_tree);
-    try_get_context(inputs.merkle_path);
     if (builder == nullptr) {
-        throw std::runtime_error("No context found for zkfocil circuit");
+        throw std::runtime_error("no context found for zkfocil circuit");
     }
 
-    // Check that the secret key is not zero
-    inputs.secret_key.assert_is_not_zero("secret key is zero");
-
     // Check if the public key is valid
-    G1 computed_public_key = G1::one * inputs.secret_key;
-    inputs.public_key.assert_equal(computed_public_key, "public key does not match secret key");
+    G1 computed_public_key = G1::one(builder) * inputs.secret_key;
+    inputs.public_key.x.assert_equal(computed_public_key.x);
+    inputs.public_key.y.assert_equal(computed_public_key.y);
 
     // Compute the input to the hash function
     // The input is the concatenation of the secret key and the slot identifier
     // The input is a byte array, so we need to convert the secret key and slot identifier to byte arrays
     // and then concatenate them
     byte_array_ct secret_key_array = inputs.secret_key.to_byte_array();
-    byte_array_ct slot_identifier_array = inputs.slot_identifier.to_byte_array();
-    byte_array_ct hash_input_array(&builder);
+    byte_array_ct slot_identifier_array = byte_array_ct(inputs.slot_identifier);
+    byte_array_ct hash_input_array(builder);
     hash_input_array.write(secret_key_array);
     hash_input_array.write(slot_identifier_array);
 
@@ -60,8 +59,9 @@ bool_t<Builder> zkfocil_circuit(const zkfocil_inputs<Builder, Curve, Fq, Fr, G1>
     Fr hash_output_field(hash_output.slice(0, 32));
 
     // Check if key image is valid
-    G1 computed_key_image = G1::one * hash_output_field;
-    inputs.key_image.assert_equal(computed_key_image, "key image does not match secret key");
+    G1 computed_key_image = G1::one(builder) * hash_output_field;
+    inputs.key_image.x.assert_equal(computed_key_image.x);
+    inputs.key_image.y.assert_equal(computed_key_image.y);
 
     // Now check if the merkle path is valid
     byte_array_ct public_key_array = inputs.public_key.to_byte_array();
