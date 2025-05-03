@@ -1,0 +1,65 @@
+{
+    "inputs": {
+        "secret_key_bytes": "0x02dee9b5fbaaaf930e462920231f41992d37a5f47278278edd5df0624f4991f1",
+        "block_params": "0x8cfc79c7f6403da60585d4e1ca38d2a4c0a7a36724041a0298b8e3108edc15a7",
+        "validator_root": "0xfb4cda665dde68fd1919c59df9ce31fb229e1102edd152b66785299f3c782745",
+        "validator_merkle_path": [
+            "0x7b0ea5b53b424d7fecba62fdcabeba219dcb1ed9e683dcbffdf6c4eb658c5b89",
+            "0xdf197e5112b6b6ac7fecbce45e7570d03b0705c4388e089ffe1d376cf49568a1",
+            "0x7a71f0ce3b811136be3262279edc50ac562cfe1bfdc6601f6399a62e5c38ad37",
+            "0x26ebdd0075f1fd4b6f979300869d9c9d4a3ed436c2efeef988b4c6b47e22ac5b",
+            "0x473132259b028f0302a992931405ddaa1b81f51a137acfa51925569d22b90a05",
+            "0x602a03fc56e11b9570da30b31ea21562f4fb3859bf43f7ea71e23d8d3ad60461",
+            "0x378bfffcfad29c2bb1aeadb5323110bba47c9a2b03a93d57492c53fa80d1d1fa",
+            "0xdee20ded0d7cc40dcdf5a53be0ac4d769352549f37ef55d842e34525104b732e",
+            "0x185841af48d5e3c0b14ab1ef910f8513a35d80fb76619560fd0b4d05852928ec",
+            "0x87e50fc4af8529e2d0c995c37d3adc55b39bbbbe3f379e932ced74a1cb5b5880",
+            "0xc553d0006a99b6f332d96781ae8cac5eba1d19b6624cda7e38cb0212789d2641",
+            "0x0ed8b2775590ff8b6b24bde152d08bd9703a1f36e350e0eefa6e688b1dc8748d",
+            "0x24150ac56480f3b3a83413ecbe526988efe1e7bf01ef841db162ba02b09fea40",
+            "0x96e35538c1062750d44bfa2ad707e2d5cef4a8ad7dd3367715628e12bb56751c",
+            "0xe462bf9f3af78f6ff0ca5c56716618fe3ea9c4c1f0bd98345d5c6311c20f07bf",
+            "0x190ee62ed22df84a0c8adc11c76de6b29f9facc941515d91f30f835d8a53c87f",
+            "0xc40473a0822b07115f3fe879b1d613dfa48afce1347e482dc0bd38f17e4928e6",
+            "0x40de7ed0bb3a16694da8b3701a5c3e5ba7d11d6c957cfe1dd61f4b3e9d87546f",
+            "0x5eee9023737af8a2bdee917630d7ffd1dc60fb60ce62cd27954cb4720a251658",
+            "0x71fea97fa4b5f2e0387cd00707f3dcddcb0e92e0a114f621d4f4c98ebf4c0733"
+        ],
+        "validator_merkle_indices": [
+            1,
+            1,
+            0,
+            1,
+            0,
+            0,
+            0,
+            1,
+            1,
+            0,
+            1,
+            1,
+            0,
+            1,
+            1,
+            0,
+            1,
+            1,
+            0,
+            0
+        ]
+    },
+    "expected": {
+        "public_key": {
+            "x": "0x27864b79093d80cf8c02beb32cfec3ccfff96fdfe3694b60e776f942eba0491d01adcc345471844865d37e1887fe7202",
+            "y": "0x6a02f44e22de3cfe4906f875ce3325db46b73f4e42bcb871f1e39d047ddf2006da978c88e84b02db95ec6a75fee5e905"
+        },
+        "key_image": {
+            "x": "0xbe2c28500e71f284e0d5bb19cc7b0bc609ba65e90566a2c7796a3447c0a2d69c4abf4b0d70758fcf3696ba4a3805c010",
+            "y": "0x201e7f1f13cfb776de40a9dcf2c4f398dd6633706d2bbf797964f73185de0c89280da28da3f83ccddbfc8f51050c5a17"
+        }
+    },
+    "metadata": {
+        "tree_depth": 20,
+        "target_pk_hash": "0xa0d49cd2ac013629e31749e87c10477686cc4fd42930fbf4051f5de5fd1d2232"
+    }
+}
