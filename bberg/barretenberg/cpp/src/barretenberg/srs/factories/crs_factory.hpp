@@ -5,6 +5,7 @@
 #include "barretenberg/ecc/curves/bn254/g2.hpp"
 #include "barretenberg/ecc/curves/grumpkin/grumpkin.hpp"
 #include <cstddef>
+#include <variant>
 
 namespace bb::pairing {
 struct miller_lines;
@@ -27,11 +28,13 @@ template <typename Curve> class ProverCrs {
     virtual size_t get_monomial_size() const = 0;
 };
 
-template <typename Curve> class VerifierCrs {
+enum class CrsType { Trusted, Transparent };
+
+template <typename Curve, CrsType Type> class VerifierCrs {
   public:
     virtual ~VerifierCrs() = default;
 };
-template <> class VerifierCrs<curve::BN254> {
+template <> class VerifierCrs<curve::BN254, CrsType::Trusted> {
     using Curve = curve::BN254;
 
   public:
@@ -48,15 +51,15 @@ template <> class VerifierCrs<curve::BN254> {
     virtual Curve::AffineElement get_g1_identity() const = 0;
 };
 
-template <> class VerifierCrs<curve::Grumpkin> {
-    using Curve = curve::Grumpkin;
+template <typename Curve> class VerifierCrs<Curve, CrsType::Transparent> {
+    // using Curve = curve::Grumpkin;
 
   public:
     /**
      * @brief Returns the G_1 elements in the CRS after the pippenger point table has been applied on them
      *
      */
-    virtual std::span<const Curve::AffineElement> get_monomial_points() const = 0;
+    virtual std::span<const typename Curve::AffineElement> get_monomial_points() const = 0;
     virtual size_t get_monomial_size() const = 0;
     /**
      * @brief Returns the first G_1 element from the CRS, used by the Shplonk verifier to compute the final
@@ -64,6 +67,10 @@ template <> class VerifierCrs<curve::Grumpkin> {
      */
     virtual Curve::AffineElement get_g1_identity() const = 0;
 };
+
+template <typename Curve>
+using VerifierCrsVariant = std::variant<std::shared_ptr<VerifierCrs<Curve, CrsType::Trusted>>,
+                                        std::shared_ptr<VerifierCrs<Curve, CrsType::Transparent>>>;
 
 /**
  * A factory class to return the prover crs and verifier crs on request.
@@ -75,9 +82,16 @@ template <typename Curve> class CrsFactory {
     CrsFactory(CrsFactory&& other) = default;
     virtual ~CrsFactory() = default;
     virtual std::shared_ptr<bb::srs::factories::ProverCrs<Curve>> get_prover_crs(size_t) { return nullptr; }
-    virtual std::shared_ptr<bb::srs::factories::VerifierCrs<Curve>> get_verifier_crs([[maybe_unused]] size_t degree = 0)
+    virtual VerifierCrsVariant<Curve> get_verifier_crs([[maybe_unused]] CrsType crs_type,
+                                                       [[maybe_unused]] size_t degree = 0)
     {
-        return nullptr;
+        return VerifierCrsVariant<Curve>{ std::shared_ptr<VerifierCrs<Curve, CrsType::Trusted>>{} };
+    }
+
+    template <CrsType CType> std::shared_ptr<VerifierCrs<Curve, CType>> get_typed_verifier_crs(size_t degree = 0)
+    {
+        auto variant = get_verifier_crs(CType, degree);
+        return std::get<std::shared_ptr<VerifierCrs<Curve, CType>>>(variant);
     }
 };
 

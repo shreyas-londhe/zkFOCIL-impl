@@ -7,10 +7,11 @@
 #include "barretenberg/ecc/curves/grumpkin/grumpkin.hpp"
 #include "barretenberg/ecc/scalar_multiplication/point_table.hpp"
 #include "barretenberg/ecc/scalar_multiplication/scalar_multiplication.hpp"
+#include "barretenberg/srs/factories/crs_factory.hpp"
 
 namespace bb::srs::factories {
 
-FileVerifierCrs<curve::BN254>::FileVerifierCrs(std::string const& path, const size_t)
+FileVerifierCrs<curve::BN254, CrsType::Trusted>::FileVerifierCrs(std::string const& path, const size_t)
     : precomputed_g2_lines((bb::pairing::miller_lines*)(aligned_alloc(64, sizeof(bb::pairing::miller_lines) * 2)))
 {
     using Curve = curve::BN254;
@@ -22,27 +23,29 @@ FileVerifierCrs<curve::BN254>::FileVerifierCrs(std::string const& path, const si
     g1_identity = point_buf[0];
 }
 
-FileVerifierCrs<curve::BN254>::~FileVerifierCrs()
+FileVerifierCrs<curve::BN254, CrsType::Trusted>::~FileVerifierCrs()
 {
     aligned_free(precomputed_g2_lines);
 }
 
-FileVerifierCrs<curve::Grumpkin>::FileVerifierCrs(std::string const& path, const size_t num_points)
+template <typename Curve>
+FileVerifierCrs<Curve, CrsType::Transparent>::FileVerifierCrs(std::string const& path, const size_t num_points)
     : num_points(num_points)
 {
-    using Curve = curve::Grumpkin;
-    monomials_ = scalar_multiplication::point_table_alloc<Curve::AffineElement>(num_points);
+    // using Curve = curve::Grumpkin;
+    monomials_ = scalar_multiplication::point_table_alloc<typename Curve::AffineElement>(num_points);
     srs::IO<Curve>::read_transcript_g1(monomials_.get(), num_points, path);
     scalar_multiplication::generate_pippenger_point_table<Curve>(monomials_.get(), monomials_.get(), num_points);
     g1_identity = monomials_[0];
 };
 
-std::span<const curve::Grumpkin::AffineElement> FileVerifierCrs<curve::Grumpkin>::get_monomial_points() const
+template <typename Curve>
+std::span<const typename Curve::AffineElement> FileVerifierCrs<Curve, CrsType::Transparent>::get_monomial_points() const
 {
     return { monomials_.get(), num_points * 2 };
 }
 
-size_t FileVerifierCrs<curve::Grumpkin>::get_monomial_size() const
+template <typename Curve> size_t FileVerifierCrs<Curve, CrsType::Transparent>::get_monomial_size() const
 {
     return num_points;
 }
@@ -68,13 +71,27 @@ std::shared_ptr<bb::srs::factories::ProverCrs<Curve>> FileCrsFactory<Curve>::get
 }
 
 template <typename Curve>
-std::shared_ptr<bb::srs::factories::VerifierCrs<Curve>> FileCrsFactory<Curve>::get_verifier_crs(size_t degree)
+VerifierCrsVariant<Curve> FileCrsFactory<Curve>::get_verifier_crs(CrsType crs_type, size_t degree)
 {
-    if (verifier_degree_ < degree || !verifier_crs_) {
-        verifier_crs_ = std::make_shared<FileVerifierCrs<Curve>>(path_, degree);
+    if (verifier_degree_ < degree || verifier_crs_.valueless_by_exception()) {
         verifier_degree_ = degree;
-        vinfo("Initialized ", Curve::name, " verifier CRS from file of size ", degree);
+
+        switch (crs_type) {
+        case CrsType::Trusted:
+            if constexpr (!std::is_same_v<Curve, curve::Grumpkin>) {
+                verifier_crs_ = std::make_shared<FileVerifierCrs<Curve, CrsType::Trusted>>(path_, degree);
+            } else {
+                throw_or_abort("trusted setup is not allowed for Grumpkin");
+            }
+            break;
+        case CrsType::Transparent:
+            verifier_crs_ = std::make_shared<FileVerifierCrs<Curve, CrsType::Transparent>>(path_, degree);
+            break;
+        default:
+            throw_or_abort("unknown CrsType");
+        }
     }
+    vinfo("Initialized ", Curve::name, " verifier CRS from file of size ", degree);
     return verifier_crs_;
 }
 

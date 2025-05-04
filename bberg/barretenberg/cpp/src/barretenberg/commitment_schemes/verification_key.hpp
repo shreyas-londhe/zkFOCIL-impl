@@ -12,6 +12,7 @@
 #include "barretenberg/ecc/scalar_multiplication/scalar_multiplication.hpp"
 #include "barretenberg/numeric/bitop/pow.hpp"
 #include "barretenberg/polynomials/polynomial_arithmetic.hpp"
+#include "barretenberg/srs/factories/crs_factory.hpp"
 #include "barretenberg/srs/global_crs.hpp"
 
 #include <cstddef>
@@ -33,7 +34,10 @@ template <> class VerifierCommitmentKey<curve::BN254> {
     using GroupElement = typename Curve::Element;
     using Commitment = typename Curve::AffineElement;
 
-    VerifierCommitmentKey() { srs = srs::get_crs_factory<Curve>()->get_verifier_crs(); };
+    VerifierCommitmentKey()
+    {
+        srs = srs::get_crs_factory<Curve>()->get_typed_verifier_crs<srs::factories::CrsType::Trusted>();
+    };
     bool operator==(const VerifierCommitmentKey&) const = default;
 
     Commitment get_g1_identity() { return srs->get_g1_identity(); }
@@ -56,7 +60,7 @@ template <> class VerifierCommitmentKey<curve::BN254> {
     }
 
   private:
-    std::shared_ptr<bb::srs::factories::VerifierCrs<Curve>> srs;
+    std::shared_ptr<bb::srs::factories::VerifierCrs<Curve, srs::factories::CrsType::Trusted>> srs;
 };
 
 /**
@@ -79,13 +83,13 @@ template <> class VerifierCommitmentKey<curve::Grumpkin> {
      */
     VerifierCommitmentKey(size_t num_points, const std::shared_ptr<bb::srs::factories::CrsFactory<Curve>>& crs_factory)
         : pippenger_runtime_state(num_points)
-        , srs(crs_factory->get_verifier_crs(num_points))
+        , srs(crs_factory->get_typed_verifier_crs<srs::factories::CrsType::Transparent>(num_points))
     {}
 
     VerifierCommitmentKey(size_t num_points)
         : pippenger_runtime_state(num_points)
     {
-        srs = srs::get_crs_factory<Curve>()->get_verifier_crs(num_points);
+        srs = srs::get_crs_factory<Curve>()->get_typed_verifier_crs<srs::factories::CrsType::Transparent>(num_points);
     }
 
     Commitment get_g1_identity() { return srs->get_g1_identity(); }
@@ -95,7 +99,7 @@ template <> class VerifierCommitmentKey<curve::Grumpkin> {
     bb::scalar_multiplication::pippenger_runtime_state<Curve> pippenger_runtime_state;
 
   private:
-    std::shared_ptr<bb::srs::factories::VerifierCrs<Curve>> srs;
+    std::shared_ptr<bb::srs::factories::VerifierCrs<Curve, srs::factories::CrsType::Transparent>> srs;
 };
 
 } // namespace bb

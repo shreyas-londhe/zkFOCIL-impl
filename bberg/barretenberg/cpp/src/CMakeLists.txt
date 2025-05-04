@@ -67,6 +67,7 @@ endif()
 
 add_subdirectory(barretenberg/api)
 add_subdirectory(barretenberg/bb)
+add_subdirectory(barretenberg/bn254_transparent_srs_gen)
 add_subdirectory(barretenberg/boomerang_value_detection)
 add_subdirectory(barretenberg/bn254_transparent_srs_gen)
 add_subdirectory(barretenberg/circuit_checker)

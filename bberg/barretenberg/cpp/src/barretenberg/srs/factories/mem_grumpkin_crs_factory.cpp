@@ -4,6 +4,7 @@
 #include "barretenberg/ecc/curves/grumpkin/grumpkin.hpp"
 #include "barretenberg/ecc/scalar_multiplication/point_table.hpp"
 #include "barretenberg/ecc/scalar_multiplication/scalar_multiplication.hpp"
+#include "barretenberg/srs/factories/crs_factory.hpp"
 #include "barretenberg/srs/factories/mem_prover_crs.hpp"
 
 namespace {
@@ -14,7 +15,7 @@ using namespace bb::srs::factories;
 
 using Curve = curve::Grumpkin;
 
-class MemVerifierCrs : public VerifierCrs<Grumpkin> {
+class MemVerifierCrs : public VerifierCrs<Grumpkin, CrsType::Transparent> {
   public:
     MemVerifierCrs(std::vector<Grumpkin::AffineElement> const& points)
         : num_points(points.size())
@@ -62,13 +63,16 @@ std::shared_ptr<bb::srs::factories::ProverCrs<Grumpkin>> MemGrumpkinCrsFactory::
     return prover_crs_;
 }
 
-std::shared_ptr<bb::srs::factories::VerifierCrs<Grumpkin>> MemGrumpkinCrsFactory::get_verifier_crs(size_t degree)
+VerifierCrsVariant<curve::Grumpkin> MemGrumpkinCrsFactory::get_verifier_crs(CrsType crs_type, size_t degree)
 {
     if (prover_crs_->get_monomial_size() < degree) {
         throw_or_abort(format("verifier trying to get too many points in MemGrumpkinCrsFactory - ",
                               degree,
                               " is more than ",
                               prover_crs_->get_monomial_size()));
+    }
+    if (crs_type != CrsType::Transparent) {
+        throw_or_abort("only transparent crs supported in MemGrumpkinCrsFactory");
     }
     return verifier_crs_;
 }
