@@ -73,7 +73,7 @@ std::shared_ptr<bb::srs::factories::ProverCrs<Curve>> FileCrsFactory<Curve>::get
 template <typename Curve>
 VerifierCrsVariant<Curve> FileCrsFactory<Curve>::get_verifier_crs(CrsType crs_type, size_t degree)
 {
-    if (verifier_degree_ < degree || verifier_crs_.valueless_by_exception()) {
+    if (verifier_degree_ < degree || std::holds_alternative<std::monostate>(verifier_crs_)) {
         verifier_degree_ = degree;
 
         switch (crs_type) {

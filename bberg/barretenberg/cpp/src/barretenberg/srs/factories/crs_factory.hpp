@@ -69,7 +69,8 @@ template <typename Curve> class VerifierCrs<Curve, CrsType::Transparent> {
 };
 
 template <typename Curve>
-using VerifierCrsVariant = std::variant<std::shared_ptr<VerifierCrs<Curve, CrsType::Trusted>>,
+using VerifierCrsVariant = std::variant<std::monostate, // default-initializes to monostate
+                                        std::shared_ptr<VerifierCrs<Curve, CrsType::Trusted>>,
                                         std::shared_ptr<VerifierCrs<Curve, CrsType::Transparent>>>;
 
 /**
@@ -85,7 +86,7 @@ template <typename Curve> class CrsFactory {
     virtual VerifierCrsVariant<Curve> get_verifier_crs([[maybe_unused]] CrsType crs_type,
                                                        [[maybe_unused]] size_t degree = 0)
     {
-        return VerifierCrsVariant<Curve>{ std::shared_ptr<VerifierCrs<Curve, CrsType::Trusted>>{} };
+        return VerifierCrsVariant<Curve>{};
     }
 
     template <CrsType CType> std::shared_ptr<VerifierCrs<Curve, CType>> get_typed_verifier_crs(size_t degree = 0)
