@@ -1,6 +1,6 @@
 # zkFOCIL-impl: Zero-Knowledge FOCIL Implementation in Noir
 
-This project implements core components of the FOCIL (Fast Objective Chain Inclusion Layer) protocol using the Noir ZK language. Specifically, it provides a Noir circuit that:
+This project implements core components of the [zkFOCIL](https://ethresear.ch/t/zkfocil-inclusion-list-privacy-using-linkable-ring-signatures/21688) protocol using the Noir DSL. Specifically, it provides a Noir circuit that:
 
 1.  Derives a public key (PK) from a secret key (SK).
 2.  Derives a key image (KI) from the secret key and block parameters.
@@ -133,7 +133,7 @@ The script automatically times each major step and prints the durations.
 
 The `noir/native_honk.sh` script provides timing information for the core cryptographic operations. You don't need a separate benchmark command; simply run the script as described above.
 
-Here are example benchmark results from a run:
+Here are example benchmark results from a run (on a 2024 MacBook Pro M3 Pro):
 
 | Operation                 | Time (seconds) |
 | :------------------------ | -------------: |
