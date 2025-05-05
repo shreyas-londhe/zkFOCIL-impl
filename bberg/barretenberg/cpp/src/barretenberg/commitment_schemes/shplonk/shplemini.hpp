@@ -184,7 +184,7 @@ template <typename Curve, bool use_padding> class ShpleminiVerifier_ {
     using Fr = typename Curve::ScalarField;
     using GroupElement = typename Curve::Element;
     using Commitment = typename Curve::AffineElement;
-    using VK = VerifierCommitmentKey<Curve>;
+    using VK = VerifierCommitmentKey<Curve, CrsType::Trusted>;
     using ShplonkVerifier = ShplonkVerifier_<Curve>;
     using GeminiVerifier = GeminiVerifier_<Curve>;
     using ClaimBatcher = ClaimBatcher_<Curve>;

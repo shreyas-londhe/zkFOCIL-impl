@@ -1,4 +1,5 @@
 #pragma once
+#include "barretenberg/commitment_schemes/ipa/ipa.hpp"
 #include "barretenberg/commitment_schemes/kzg/kzg.hpp"
 #include "barretenberg/ecc/curves/bn254/g1.hpp"
 #include "barretenberg/flavor/flavor.hpp"
@@ -31,10 +32,10 @@ class UltraFlavor {
     using FF = Curve::ScalarField;
     using GroupElement = Curve::Element;
     using Commitment = Curve::AffineElement;
-    using PCS = KZG<Curve>;
+    using PCS = IPA<Curve>;
     using Polynomial = bb::Polynomial<FF>;
     using CommitmentKey = bb::CommitmentKey<Curve>;
-    using VerifierCommitmentKey = bb::VerifierCommitmentKey<Curve>;
+    using VerifierCommitmentKey = bb::VerifierCommitmentKey<Curve, srs::factories::CrsType::Transparent>;
 
     // indicates when evaluating sumcheck, edges can be left as degree-1 monomials
     static constexpr bool USE_SHORT_MONOMIALS = true;
@@ -354,6 +355,10 @@ class UltraFlavor {
     class VerificationKey : public VerificationKey_<uint64_t, PrecomputedEntities<Commitment>, VerifierCommitmentKey> {
       public:
         bool operator==(const VerificationKey&) const = default;
+
+        // IPA verification key requires one more point.
+        std::shared_ptr<VerifierCommitmentKey> pcs_verification_key;
+
         VerificationKey() = default;
         VerificationKey(const size_t circuit_size, const size_t num_public_inputs)
             : VerificationKey_(circuit_size, num_public_inputs)
@@ -367,6 +372,8 @@ class UltraFlavor {
             this->contains_pairing_point_accumulator = proving_key.contains_pairing_point_accumulator;
             this->pairing_point_accumulator_public_input_indices =
                 proving_key.pairing_point_accumulator_public_input_indices;
+
+            pcs_verification_key = std::make_shared<VerifierCommitmentKey>(proving_key.circuit_size + 1);
 
             if (proving_key.commitment_key == nullptr) {
                 proving_key.commitment_key = std::make_shared<CommitmentKey>(proving_key.circuit_size);

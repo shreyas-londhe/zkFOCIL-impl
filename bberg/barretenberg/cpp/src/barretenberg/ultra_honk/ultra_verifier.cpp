@@ -19,6 +19,8 @@ template <typename Flavor> bool UltraVerifier_<Flavor>::verify_proof(const HonkP
     OinkVerifier<Flavor> oink_verifier{ verification_key, transcript };
     oink_verifier.verify();
 
+    std::cout << "Oink verification done." << std::endl;
+
     for (size_t idx = 0; idx < CONST_PROOF_SIZE_LOG_N; idx++) {
         verification_key->gate_challenges.emplace_back(
             transcript->template get_challenge<FF>("Sumcheck:gate_challenge_" + std::to_string(idx)));

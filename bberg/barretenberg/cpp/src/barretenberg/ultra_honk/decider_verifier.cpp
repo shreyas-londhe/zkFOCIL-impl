@@ -1,5 +1,7 @@
 #include "decider_verifier.hpp"
 #include "barretenberg/commitment_schemes/shplonk/shplemini.hpp"
+#include "barretenberg/common/throw_or_abort.hpp"
+#include "barretenberg/ecc/curves/bn254/bn254.hpp"
 #include "barretenberg/numeric/bitop/get_msb.hpp"
 #include "barretenberg/sumcheck/sumcheck.hpp"
 #include "barretenberg/transcript/transcript.hpp"
@@ -42,6 +44,8 @@ template <typename Flavor> bool DeciderVerifier_<Flavor>::verify()
     using ClaimBatch = ClaimBatcher::Batch;
     using VerifierCommitmentKey = typename Flavor::VerifierCommitmentKey;
 
+    std::cout << "decider verification starts." << std::endl;
+
     VerifierCommitments commitments{ accumulator->verification_key, accumulator->witness_commitments };
 
     const size_t log_circuit_size = static_cast<size_t>(accumulator->verification_key->log_circuit_size);
@@ -81,9 +85,24 @@ template <typename Flavor> bool DeciderVerifier_<Flavor>::verify()
                                                &consistency_checked,
                                                libra_commitments,
                                                sumcheck_output.claimed_libra_evaluation);
-    const auto pairing_points = PCS::reduce_verify_batch_opening_claim(opening_claim, transcript);
-    VerifierCommitmentKey pcs_vkey{};
-    bool verified = pcs_vkey.pairing_check(pairing_points[0], pairing_points[1]);
+
+    std::cout << "final pcs verification starts." << std::endl;
+
+    // Decide final verification step based on the PCS type
+    // TODO(suyash): maybe generalise this to work with any PCS
+    bool verified = false;
+    if constexpr (std::is_same_v<PCS, IPA<Curve>>) {
+        std::cout << "ipa pcs:" << std::endl;
+        verified = PCS::reduce_verify_batch_opening_claim(
+            opening_claim, accumulator->verification_key->pcs_verification_key, transcript);
+    } else if constexpr (std::is_same_v<PCS, KZG<Curve>>) {
+        const auto pairing_points = PCS::reduce_verify_batch_opening_claim(opening_claim, transcript);
+        VerifierCommitmentKey pcs_vkey{};
+        verified = pcs_vkey.pairing_check(pairing_points[0], pairing_points[1]);
+    } else {
+        throw_or_abort("unsupported PCS type");
+    }
+
     return sumcheck_output.verified && verified && consistency_checked;
 }
 

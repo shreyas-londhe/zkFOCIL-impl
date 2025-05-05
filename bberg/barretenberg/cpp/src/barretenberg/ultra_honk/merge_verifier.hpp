@@ -19,7 +19,7 @@ class MergeVerifier {
     using Commitment = typename Curve::AffineElement;
     using PCS = bb::KZG<Curve>;
     using OpeningClaim = bb::OpeningClaim<Curve>;
-    using VerifierCommitmentKey = bb::VerifierCommitmentKey<Curve>;
+    using VerifierCommitmentKey = bb::VerifierCommitmentKey<Curve, CrsType::Trusted>;
     using Transcript = NativeTranscript;
 
   public:

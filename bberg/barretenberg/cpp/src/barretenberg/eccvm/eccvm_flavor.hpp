@@ -1,5 +1,6 @@
 #pragma once
 #include "barretenberg/commitment_schemes/ipa/ipa.hpp"
+#include "barretenberg/commitment_schemes/verification_key.hpp"
 #include "barretenberg/common/std_array.hpp"
 #include "barretenberg/ecc/curves/bn254/bn254.hpp"
 #include "barretenberg/ecc/curves/grumpkin/grumpkin.hpp"
@@ -37,7 +38,7 @@ class ECCVMFlavor {
     using GroupElement = typename G1::element;
     using Commitment = typename G1::affine_element;
     using CommitmentKey = bb::CommitmentKey<Curve>;
-    using VerifierCommitmentKey = bb::VerifierCommitmentKey<Curve>;
+    using VerifierCommitmentKey = bb::VerifierCommitmentKey<Curve, CrsType::Transparent>;
     using RelationSeparator = FF;
     using MSM = bb::eccvm::MSM<CycleGroup>;
 

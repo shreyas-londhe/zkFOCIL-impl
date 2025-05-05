@@ -1,4 +1,5 @@
 #pragma once
+#include "barretenberg/commitment_schemes/verification_key.hpp"
 #include "barretenberg/honk/proof_system/types/proof.hpp"
 #include "barretenberg/srs/global_crs.hpp"
 #include "barretenberg/stdlib_circuit_builders/mega_flavor.hpp"
@@ -17,9 +18,9 @@ template <typename Flavor> class UltraVerifier_ {
     using DeciderVerifier = DeciderVerifier_<Flavor>;
 
   public:
-    explicit UltraVerifier_(
-        const std::shared_ptr<VerificationKey>& verifier_key,
-        const std::shared_ptr<VerifierCommitmentKey<curve::Grumpkin>>& ipa_verification_key = nullptr)
+    explicit UltraVerifier_(const std::shared_ptr<VerificationKey>& verifier_key,
+                            const std::shared_ptr<VerifierCommitmentKey<curve::Grumpkin, CrsType::Transparent>>&
+                                ipa_verification_key = nullptr)
         : verification_key(std::make_shared<DeciderVK>(verifier_key))
         , ipa_verification_key(ipa_verification_key)
     {}
@@ -29,7 +30,7 @@ template <typename Flavor> class UltraVerifier_ {
     std::shared_ptr<Transcript> transcript{ nullptr };
     std::shared_ptr<Transcript> ipa_transcript{ nullptr };
     std::shared_ptr<DeciderVK> verification_key;
-    std::shared_ptr<VerifierCommitmentKey<curve::Grumpkin>> ipa_verification_key;
+    std::shared_ptr<VerifierCommitmentKey<curve::Grumpkin, CrsType::Transparent>> ipa_verification_key;
 };
 
 using UltraVerifier = UltraVerifier_<UltraFlavor>;

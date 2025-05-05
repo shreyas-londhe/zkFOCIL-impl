@@ -5,6 +5,7 @@
 #include "barretenberg/api/get_bn254_crs.hpp"
 #include "barretenberg/api/init_srs.hpp"
 #include "barretenberg/api/write_prover_output.hpp"
+#include "barretenberg/commitment_schemes/verification_key.hpp"
 #include "barretenberg/common/map.hpp"
 #include "barretenberg/common/throw_or_abort.hpp"
 #include "barretenberg/dsl/acir_format/proof_surgeon.hpp"
@@ -120,7 +121,7 @@ bool _verify(const bool ipa_accumulation,
     std::vector<fr> complete_proof = public_inputs;
     complete_proof.insert(complete_proof.end(), proof.begin(), proof.end());
 
-    std::shared_ptr<VerifierCommitmentKey<curve::Grumpkin>> ipa_verification_key;
+    std::shared_ptr<VerifierCommitmentKey<curve::Grumpkin, CrsType::Transparent>> ipa_verification_key;
     if (ipa_accumulation) {
         init_grumpkin_crs(1 << CONST_ECCVM_LOG_N);
         ipa_verification_key = std::make_shared<VerifierCommitmentKey<curve::Grumpkin>>(1 << CONST_ECCVM_LOG_N);

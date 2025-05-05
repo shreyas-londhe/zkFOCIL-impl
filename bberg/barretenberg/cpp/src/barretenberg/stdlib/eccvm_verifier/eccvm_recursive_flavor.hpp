@@ -1,4 +1,5 @@
 #pragma once
+#include "barretenberg/commitment_schemes/verification_key.hpp"
 #include "barretenberg/common/std_array.hpp"
 #include "barretenberg/eccvm/eccvm_flavor.hpp"
 #include "barretenberg/flavor/flavor.hpp"
@@ -80,7 +81,7 @@ template <typename BuilderType> class ECCVMRecursiveFlavor_ {
         using Base::Base;
     };
 
-    using VerifierCommitmentKey = bb::VerifierCommitmentKey<Curve>;
+    using VerifierCommitmentKey = bb::VerifierCommitmentKey<Curve, CrsType::Transparent>;
     /**
      * @brief The verification key is responsible for storing the commitments to the precomputed (non-witness)
      * polynomials used by the verifier.

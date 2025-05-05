@@ -4,6 +4,7 @@
 #include "barretenberg/commitment_schemes/verification_key.hpp"
 #include "barretenberg/constants.hpp"
 #include "barretenberg/ecc/curves/bn254/g1.hpp"
+#include "barretenberg/ecc/curves/grumpkin/grumpkin.hpp"
 #include "barretenberg/srs/factories/file_crs_factory.hpp"
 #include "claim.hpp"
 
@@ -47,28 +48,36 @@ template <typename CK> inline std::shared_ptr<CK> create_commitment_key(size_t n
 template <class VK> inline std::shared_ptr<VK> create_verifier_commitment_key();
 
 template <>
-inline std::shared_ptr<VerifierCommitmentKey<curve::BN254>> create_verifier_commitment_key<
-    VerifierCommitmentKey<curve::BN254>>()
+inline std::shared_ptr<VerifierCommitmentKey<curve::BN254, CrsType::Trusted>> create_verifier_commitment_key<
+    VerifierCommitmentKey<curve::BN254, CrsType::Trusted>>()
 {
-    return std::make_shared<VerifierCommitmentKey<curve::BN254>>();
+    return std::make_shared<VerifierCommitmentKey<curve::BN254, CrsType::Trusted>>();
 }
 // For IPA
 template <>
-inline std::shared_ptr<VerifierCommitmentKey<curve::Grumpkin>> create_verifier_commitment_key<
-    VerifierCommitmentKey<curve::Grumpkin>>()
+inline std::shared_ptr<VerifierCommitmentKey<curve::Grumpkin, CrsType::Transparent>> create_verifier_commitment_key<
+    VerifierCommitmentKey<curve::Grumpkin, CrsType::Transparent>>()
 {
     auto crs_factory = std::make_shared<srs::factories::FileCrsFactory<curve::Grumpkin>>(
         bb::srs::get_grumpkin_crs_path(), COMMITMENT_TEST_NUM_GRUMPKIN_POINTS);
-    return std::make_shared<VerifierCommitmentKey<curve::Grumpkin>>(COMMITMENT_TEST_NUM_GRUMPKIN_POINTS, crs_factory);
+    return std::make_shared<VerifierCommitmentKey<curve::Grumpkin, CrsType::Transparent>>(
+        COMMITMENT_TEST_NUM_GRUMPKIN_POINTS, crs_factory);
 }
 template <typename VK> inline std::shared_ptr<VK> create_verifier_commitment_key()
 // requires std::default_initializable<VK>
 {
     return std::make_shared<VK>();
 }
-template <typename Curve> class CommitmentTest : public ::testing::Test {
+
+template <typename Curve_, CrsType CType_> struct CommitmentSchemeTuple {
+    using Curve = Curve_;
+    using CType = std::integral_constant<CrsType, CType_>;
+};
+
+template <class Params> class CommitmentTest : public ::testing::Test {
+    using Curve = typename Params::Curve;
     using CK = CommitmentKey<Curve>;
-    using VK = VerifierCommitmentKey<Curve>;
+    using VK = VerifierCommitmentKey<Curve, Params::CType::value>;
 
     using Fr = typename Curve::ScalarField;
     using Commitment = typename Curve::AffineElement;
@@ -184,12 +193,14 @@ template <typename Curve> class CommitmentTest : public ::testing::Test {
     static typename std::shared_ptr<VK> verification_key;
 };
 
-template <typename Curve>
-typename std::shared_ptr<CommitmentKey<Curve>> CommitmentTest<Curve>::commitment_key = nullptr;
-template <typename Curve>
-typename std::shared_ptr<VerifierCommitmentKey<Curve>> CommitmentTest<Curve>::verification_key = nullptr;
+template <typename Params>
+typename std::shared_ptr<CommitmentKey<typename Params::Curve>> CommitmentTest<Params>::commitment_key = nullptr;
 
-using CommitmentSchemeParams = ::testing::Types<curve::BN254>;
-using IpaCommitmentSchemeParams = ::testing::Types<curve::Grumpkin>;
+template <typename Params>
+typename std::shared_ptr<VerifierCommitmentKey<typename Params::Curve, Params::CType::value>>
+    CommitmentTest<Params>::verification_key = nullptr;
+
+using CommitmentSchemeParams = ::testing::Types<CommitmentSchemeTuple<curve::BN254, CrsType::Trusted>>;
+using IpaCommitmentSchemeParams = ::testing::Types<CommitmentSchemeTuple<curve::Grumpkin, CrsType::Transparent>>;
 
 } // namespace bb

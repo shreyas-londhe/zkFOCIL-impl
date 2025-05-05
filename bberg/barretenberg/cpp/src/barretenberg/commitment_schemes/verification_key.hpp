@@ -21,23 +21,22 @@
 
 namespace bb {
 
-template <class Curve> class VerifierCommitmentKey;
+using CrsType = srs::factories::CrsType;
+
+template <class Curve, CrsType CType> class VerifierCommitmentKey;
 
 /**
  * @brief Specialization for bn254
  *
  * @tparam curve::BN254
  */
-template <> class VerifierCommitmentKey<curve::BN254> {
+template <> class VerifierCommitmentKey<curve::BN254, CrsType::Trusted> {
   public:
     using Curve = curve::BN254;
     using GroupElement = typename Curve::Element;
     using Commitment = typename Curve::AffineElement;
 
-    VerifierCommitmentKey()
-    {
-        srs = srs::get_crs_factory<Curve>()->get_typed_verifier_crs<srs::factories::CrsType::Trusted>();
-    };
+    VerifierCommitmentKey() { srs = srs::get_crs_factory<Curve>()->get_typed_verifier_crs<CrsType::Trusted>(); };
     bool operator==(const VerifierCommitmentKey&) const = default;
 
     Commitment get_g1_identity() { return srs->get_g1_identity(); }
@@ -68,9 +67,9 @@ template <> class VerifierCommitmentKey<curve::BN254> {
  *
  * @tparam curve::Grumpkin
  */
-template <> class VerifierCommitmentKey<curve::Grumpkin> {
+template <typename Curve_> class VerifierCommitmentKey<Curve_, CrsType::Transparent> {
   public:
-    using Curve = curve::Grumpkin;
+    using Curve = Curve_;
     using GroupElement = typename Curve::Element;
     using Commitment = typename Curve::AffineElement;
 
@@ -89,7 +88,8 @@ template <> class VerifierCommitmentKey<curve::Grumpkin> {
     VerifierCommitmentKey(size_t num_points)
         : pippenger_runtime_state(num_points)
     {
-        srs = srs::get_crs_factory<Curve>()->get_typed_verifier_crs<srs::factories::CrsType::Transparent>(num_points);
+        srs = srs::get_crs_factory<Curve>()->template get_typed_verifier_crs<srs::factories::CrsType::Transparent>(
+            num_points);
     }
 
     Commitment get_g1_identity() { return srs->get_g1_identity(); }

@@ -42,6 +42,10 @@ class UltraRollupFlavor : public bb::UltraFlavor {
         PublicComponentKey ipa_claim_public_input_key;
 
         bool operator==(const VerificationKey&) const = default;
+
+        // IPA verification key requires one more point.
+        std::shared_ptr<VerifierCommitmentKey> pcs_verification_key;
+
         VerificationKey() = default;
         VerificationKey(const size_t circuit_size, const size_t num_public_inputs)
             : VerificationKey_(circuit_size, num_public_inputs)
@@ -87,6 +91,8 @@ class UltraRollupFlavor : public bb::UltraFlavor {
             this->contains_pairing_point_accumulator = proving_key.contains_pairing_point_accumulator;
             this->pairing_point_accumulator_public_input_indices =
                 proving_key.pairing_point_accumulator_public_input_indices;
+
+            pcs_verification_key = std::make_shared<VerifierCommitmentKey>(proving_key.circuit_size + 1);
 
             if (proving_key.commitment_key == nullptr) {
                 proving_key.commitment_key = std::make_shared<CommitmentKey>(proving_key.circuit_size);

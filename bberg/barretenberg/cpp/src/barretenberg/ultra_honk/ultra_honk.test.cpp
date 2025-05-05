@@ -1,3 +1,4 @@
+#include "barretenberg/commitment_schemes/verification_key.hpp"
 #include "barretenberg/common/serialize.hpp"
 #include "barretenberg/ecc/curves/bn254/fr.hpp"
 #include "barretenberg/numeric/uint256/uint256.hpp"
@@ -36,11 +37,19 @@ template <typename Flavor> class UltraHonkTests : public ::testing::Test {
     {
         auto proving_key = std::make_shared<DeciderProvingKey>(circuit_builder);
         Prover prover(proving_key);
-        auto verification_key = std::make_shared<VerificationKey>(proving_key->proving_key);
-        Verifier verifier(verification_key);
         auto proof = prover.construct_proof();
-        bool verified = verifier.verify_proof(proof);
-        EXPECT_EQ(verified, expected_result);
+        auto verification_key = std::make_shared<VerificationKey>(proving_key->proving_key);
+        if constexpr (HasIPAAccumulator<Flavor>) {
+            auto ipa_verification_key =
+                std::make_shared<VerifierCommitmentKey<curve::Grumpkin, CrsType::Transparent>>(1 << CONST_ECCVM_LOG_N);
+            Verifier verifier(verification_key, ipa_verification_key);
+            bool verified = verifier.verify_proof(proof, proving_key->proving_key.ipa_proof);
+            EXPECT_EQ(verified, expected_result);
+        } else {
+            Verifier verifier(verification_key);
+            bool verified = verifier.verify_proof(proof);
+            EXPECT_EQ(verified, expected_result);
+        }
     };
 
   protected:
@@ -214,10 +223,17 @@ TYPED_TEST(UltraHonkTests, LookupFailure)
 
     auto prove_and_verify = [](auto& proving_key) {
         typename TestFixture::Prover prover(proving_key);
-        auto verification_key = std::make_shared<VerificationKey>(proving_key->proving_key);
-        typename TestFixture::Verifier verifier(verification_key);
         auto proof = prover.construct_proof();
-        return verifier.verify_proof(proof);
+        auto verification_key = std::make_shared<VerificationKey>(proving_key->proving_key);
+        if constexpr (HasIPAAccumulator<TypeParam>) {
+            auto ipa_verification_key =
+                std::make_shared<VerifierCommitmentKey<curve::Grumpkin, CrsType::Transparent>>(1 << CONST_ECCVM_LOG_N);
+            typename TestFixture::Verifier verifier(verification_key, ipa_verification_key);
+            return verifier.verify_proof(proof, proving_key->proving_key.ipa_proof);
+        } else {
+            typename TestFixture::Verifier verifier(verification_key);
+            return verifier.verify_proof(proof);
+        }
     };
 
     // Ensure the unaltered test circuit is valid
