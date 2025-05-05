@@ -48,4 +48,3 @@ verifier_seconds=$(echo "scale=4; $duration_verifier / 1000000000" | bc -l)
 duration_total=$((verify_end - start_time))
 total_seconds=$(echo "scale=4; $duration_total / 1000000000" | bc -l)
 printf "Proof verified in:    %.4f seconds\n" $verifier_seconds
-printf "Total time (inc ver): %.4f seconds\n" $total_seconds

@@ -1,4 +1,4 @@
-use crate::bytes::{combine_bytes, le_to_be};
+use crate::bytes::combine_bytes;
 use dep::bignum::{BigNum, fields::U256::U256};
 use dep::noir_bigcurve::{
     BigCurveTrait,
@@ -77,13 +77,8 @@ pub fn derive_public_key(secret_key: BLS12_381Scalar) -> BLS12_381 {
 /// The key image (a curve point).
 pub fn derive_key_image(secret_key_bytes: [u8; 32], block_params: [u8; 32]) -> BLS12_381 {
     let combined_bytes = combine_bytes(secret_key_bytes, block_params);
-    // blake2s returns LE bytes
-    let hash_le = blake2s::<64>(combined_bytes);
-    // Convert hash to BE for scalar conversion
-    let hash_be = le_to_be(hash_le);
-
-    let hash_scalar: BLS12_381Scalar = bytes_to_scalar(hash_be);
-    // Multiply the hash scalar by the generator point
+    let hash = blake2s::<64>(combined_bytes);
+    let hash_scalar: BLS12_381Scalar = bytes_to_scalar(hash);
     scalar_mul_point(hash_scalar, BLS12_381::one())
 }
 

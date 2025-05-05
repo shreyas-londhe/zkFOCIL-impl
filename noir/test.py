@@ -199,7 +199,7 @@ def generate_test_inputs(
 
     combined_ki = secret_key_bytes + block_params_bytes
     hash_le_ki = hashlib.blake2s(combined_ki).digest()
-    hash_be_ki = bytes(reversed(hash_le_ki))
+    hash_be_ki = bytes(hash_le_ki)
     hash_int_ki = bytes_to_int(hash_be_ki) % CURVE_ORDER
     key_image = multiply(G1, hash_int_ki)
 
@@ -264,15 +264,11 @@ def generate_test_inputs(
         print(f"let validator_merkle_indices = [{indices_noir}];")  # bool in Noir
 
         # --- Print Expected Results (Optional for test format) ---
-        # pk_x_array = format_byte_array_noir(public_key_coords["x_le_bytes"])
-        # pk_y_array = format_byte_array_noir(public_key_coords["y_le_bytes"])
-        # ki_x_array = format_byte_array_noir(key_image_coords["x_le_bytes"])
-        # ki_y_array = format_byte_array_noir(key_image_coords["y_le_bytes"])
-        # print("\n// Expected Results (Coords LE)")
-        # print(f"let expected_public_key_x_bytes = [{pk_x_array}];")
-        # print(f"let expected_public_key_y_bytes = [{pk_y_array}];")
-        # print(f"let expected_key_image_x_bytes = [{ki_x_array}];")
-        # print(f"let expected_key_image_y_bytes = [{ki_y_array}];")
+        ki_x_array = format_byte_array_noir(key_image_coords["x_le_bytes"])
+        ki_y_array = format_byte_array_noir(key_image_coords["y_le_bytes"])
+        print("\n// Expected Results (Coords LE)")
+        print(f"let expected_key_image_x_bytes = [{ki_x_array}];")
+        print(f"let expected_key_image_y_bytes = [{ki_y_array}];")
 
     elif output_format == "toml":
         print("# Prover.toml Input Values")
