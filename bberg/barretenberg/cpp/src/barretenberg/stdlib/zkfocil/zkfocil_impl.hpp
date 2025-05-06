@@ -91,6 +91,8 @@ template <typename Builder, typename Curve, typename Fq, typename Fr, typename G
 zkfocil_inputs<Builder, Curve, Fq, Fr, G1> construct_zkfocil_inputs(Builder& builder, size_t /*unused*/)
 {
     using bb_fr = bb::fr;
+    using curve_fr = Curve::fr;
+    using curve_g1 = Curve::g1;
     using MemoryTree = bb::crypto::merkle_tree::MemoryStore;
     using PedersenHashPolicy = bb::crypto::merkle_tree::PedersenHashPolicy;
     using MerkleTree = bb::crypto::merkle_tree::MerkleTree<MemoryTree, PedersenHashPolicy>;
@@ -99,8 +101,8 @@ zkfocil_inputs<Builder, Curve, Fq, Fr, G1> construct_zkfocil_inputs(Builder& bui
     using witness_ct = stdlib::witness_t<Builder>;
 
     // Generate a key pair
-    Fr native_private_key = Fr::random_element();
-    typename G1::affine_element native_public_key = G1::one * native_private_key;
+    curve_fr native_private_key = curve_fr::random_element();
+    typename curve_g1::affine_element native_public_key = curve_g1::one * native_private_key;
 
     // Generate a key image
     // K = H(s || t) * G
@@ -111,8 +113,8 @@ zkfocil_inputs<Builder, Curve, Fq, Fr, G1> construct_zkfocil_inputs(Builder& bui
     key_image_secret_bytes.insert(
         key_image_secret_bytes.end(), slot_identifier_bytes.begin(), slot_identifier_bytes.end());
     auto hash_input_bytes = crypto::blake2s(key_image_secret_bytes);
-    Fr key_image_secret = Fr::serialize_from_buffer(&hash_input_bytes[0]);
-    typename G1::affine_element native_key_image = G1::one * key_image_secret;
+    curve_fr key_image_secret = curve_fr::serialize_from_buffer(&hash_input_bytes[0]);
+    typename curve_g1::affine_element native_key_image = curve_g1::one * key_image_secret;
 
     // Generate a Merkle tree
     // The Merkle tree is a binary tree with 2^20 leaves
@@ -140,8 +142,8 @@ zkfocil_inputs<Builder, Curve, Fq, Fr, G1> construct_zkfocil_inputs(Builder& bui
     // Convert the native path to circuit-native and construct zkfocil inputs
     stdlib::zkfocil::zkfocil_inputs<Builder, Curve, Fq, Fr, G1> ckt_inputs = {
         .slot_identifier = witness_ct(&builder, slot_identifier),
-        .secret_key = Fq::from_witness(&builder, native_private_key),
-        .public_key = Fr::from_witness(&builder, native_public_key),
+        .secret_key = Fr::from_witness(&builder, native_private_key),
+        .public_key = G1::from_witness(&builder, native_public_key),
         .key_image = G1::from_witness(&builder, native_key_image),
         .merkle_root = field_ct::from_witness(&builder, native_tree_root),
         .index_in_merkle_tree = suint_ct(witness_ct(&builder, native_validator_index), tree_depth, "val_index"),
@@ -151,14 +153,15 @@ zkfocil_inputs<Builder, Curve, Fq, Fr, G1> construct_zkfocil_inputs(Builder& bui
     return ckt_inputs;
 }
 
-template <typename Builder> void generate_zkfocil_test_circuit(Builder& builder, size_t /*unused*/)
+template <typename Builder> void generate_zkfocil_test_circuit(Builder& builder, size_t num_iterations)
 {
     using curve = stdlib::secp256k1<Builder>;
     using fq_ct = typename curve::fq_ct;
     using bigfr_ct = typename curve::bigfr_ct;
     using g1_bigfr_ct = typename curve::g1_bigfr_ct;
 
-    auto zkfocil_inputs = construct_zkfocil_inputs<Builder, curve, fq_ct, bigfr_ct, g1_bigfr_ct>(builder);
+    auto zkfocil_inputs = stdlib::zkfocil::construct_zkfocil_inputs<Builder, curve, fq_ct, bigfr_ct, g1_bigfr_ct>(
+        builder, num_iterations);
 
     // Call the zkfocil circuit
     stdlib::zkfocil::zkfocil_circuit<Builder, curve, fq_ct, bigfr_ct, g1_bigfr_ct>(zkfocil_inputs);
