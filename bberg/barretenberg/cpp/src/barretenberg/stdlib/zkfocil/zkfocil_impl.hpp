@@ -87,20 +87,13 @@ bool_t<Builder> zkfocil_circuit(const zkfocil_inputs<Builder, Curve, Fq, Fr, G1>
     return bool_t<Builder>(builder, true);
 }
 
-template <typename Builder> void generate_zkfocil_test_circuit(Builder& builder, size_t /*unused*/)
+template <typename Builder, typename Curve, typename Fq, typename Fr, typename G1>
+zkfocil_inputs<Builder, Curve, Fq, Fr, G1> construct_zkfocil_inputs(Builder& builder, size_t /*unused*/)
 {
-    using curve = stdlib::secp256k1<Builder>;
     using bb_fr = bb::fr;
-    using Fr = typename curve::fr;
-    using G1 = typename curve::g1;
-    using fq_ct = typename curve::fq_ct;
-    using bigfr_ct = typename curve::bigfr_ct;
-    using g1_bigfr_ct = typename curve::g1_bigfr_ct;
-
     using MemoryTree = bb::crypto::merkle_tree::MemoryStore;
     using PedersenHashPolicy = bb::crypto::merkle_tree::PedersenHashPolicy;
     using MerkleTree = bb::crypto::merkle_tree::MerkleTree<MemoryTree, PedersenHashPolicy>;
-
     using field_ct = stdlib::field_t<Builder>;
     using suint_ct = stdlib::safe_uint_t<Builder>;
     using witness_ct = stdlib::witness_t<Builder>;
@@ -145,18 +138,30 @@ template <typename Builder> void generate_zkfocil_test_circuit(Builder& builder,
     crypto::merkle_tree::fr_hash_path native_path = tree->get_hash_path(native_validator_index);
 
     // Convert the native path to circuit-native and construct zkfocil inputs
-    stdlib::zkfocil::zkfocil_inputs<Builder, curve, fq_ct, bigfr_ct, g1_bigfr_ct> ckt_inputs = {
+    stdlib::zkfocil::zkfocil_inputs<Builder, Curve, Fq, Fr, G1> ckt_inputs = {
         .slot_identifier = witness_ct(&builder, slot_identifier),
-        .secret_key = bigfr_ct::from_witness(&builder, native_private_key),
-        .public_key = g1_bigfr_ct::from_witness(&builder, native_public_key),
-        .key_image = g1_bigfr_ct::from_witness(&builder, native_key_image),
+        .secret_key = Fq::from_witness(&builder, native_private_key),
+        .public_key = Fr::from_witness(&builder, native_public_key),
+        .key_image = G1::from_witness(&builder, native_key_image),
         .merkle_root = field_ct::from_witness(&builder, native_tree_root),
         .index_in_merkle_tree = suint_ct(witness_ct(&builder, native_validator_index), tree_depth, "val_index"),
         .merkle_path = crypto::merkle_tree::create_witness_hash_path(builder, native_path),
     };
 
+    return ckt_inputs;
+}
+
+template <typename Builder> void generate_zkfocil_test_circuit(Builder& builder, size_t /*unused*/)
+{
+    using curve = stdlib::secp256k1<Builder>;
+    using fq_ct = typename curve::fq_ct;
+    using bigfr_ct = typename curve::bigfr_ct;
+    using g1_bigfr_ct = typename curve::g1_bigfr_ct;
+
+    auto zkfocil_inputs = construct_zkfocil_inputs<Builder, curve, fq_ct, bigfr_ct, g1_bigfr_ct>(builder);
+
     // Call the zkfocil circuit
-    stdlib::zkfocil::zkfocil_circuit<Builder, curve, fq_ct, bigfr_ct, g1_bigfr_ct>(ckt_inputs);
+    stdlib::zkfocil::zkfocil_circuit<Builder, curve, fq_ct, bigfr_ct, g1_bigfr_ct>(zkfocil_inputs);
 }
 
 } // namespace bb::stdlib::zkfocil

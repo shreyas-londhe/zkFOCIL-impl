@@ -174,7 +174,6 @@ set(BARRETENBERG_TARGET_OBJECTS
     $<TARGET_OBJECTS:stdlib_schnorr_objects>
     $<TARGET_OBJECTS:stdlib_sha256_objects>
     $<TARGET_OBJECTS:stdlib_translator_vm_verifier_objects>
-    $<TARGET_OBJECTS:stdlib_zkfocil_objects>
     $<TARGET_OBJECTS:sumcheck_objects>
     $<TARGET_OBJECTS:transcript_objects>
     $<TARGET_OBJECTS:translator_vm_objects>

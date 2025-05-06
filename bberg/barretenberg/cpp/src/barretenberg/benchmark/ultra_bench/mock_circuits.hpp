@@ -8,7 +8,7 @@
 #include "barretenberg/stdlib/encryption/ecdsa/ecdsa.hpp"
 #include "barretenberg/stdlib/hash/keccak/keccak.hpp"
 #include "barretenberg/stdlib/hash/sha256/sha256.hpp"
-#include "barretenberg/stdlib/zkfocil/zkfocil_impl.hpp"
+#include "barretenberg/stdlib/zkfocil/zkfocil.hpp"
 #include "barretenberg/ultra_honk/ultra_prover.hpp"
 
 namespace bb::mock_circuits {

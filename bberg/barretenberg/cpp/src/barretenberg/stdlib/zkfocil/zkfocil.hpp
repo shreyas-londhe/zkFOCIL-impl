@@ -42,6 +42,11 @@ template <typename Builder, typename Curve, typename Fq, typename Fr, typename G
 template <typename Builder, typename Curve, typename Fq, typename Fr, typename G1>
 bool_t<Builder> zkfocil_circuit(const zkfocil_inputs<Builder, Curve, Fq, Fr, G1>& inputs);
 
+template <typename Builder, typename Curve, typename Fq, typename Fr, typename G1>
+zkfocil_inputs<Builder, Curve, Fq, Fr, G1> construct_zkfocil_inputs(Builder& builder, size_t num_iterations);
+
+template <typename Builder> void generate_zkfocil_test_circuit(Builder& builder, size_t /*unused*/);
+
 } // namespace bb::stdlib::zkfocil
 
 #include "./zkfocil_impl.hpp"
