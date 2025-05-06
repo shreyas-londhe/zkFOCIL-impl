@@ -9,6 +9,7 @@
 #include "barretenberg/stdlib/hash/keccak/keccak.hpp"
 #include "barretenberg/stdlib/hash/sha256/sha256.hpp"
 #include "barretenberg/ultra_honk/ultra_prover.hpp"
+#include "barretenberg/stdlib/zkfocil/zkfocil_impl.hpp"
 
 namespace bb::mock_circuits {
 
