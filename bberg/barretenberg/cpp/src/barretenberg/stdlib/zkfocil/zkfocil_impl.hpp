@@ -18,7 +18,7 @@
 namespace bb::stdlib::zkfocil {
 
 namespace {
-    auto& engine = numeric::get_debug_randomness();
+auto& engine = numeric::get_debug_randomness();
 }
 
 constexpr size_t VALIDATOR_TREE_DEPTH = 20; // 2^20 = 1M leaves
