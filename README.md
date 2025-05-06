@@ -7,9 +7,12 @@
    - Install dependencies: `sudo apt-get install cmake clang clang-format ninja-build libstdc++-12-dev`
    - Top-level bootstrap: run `./bootstrap.sh` in `bberg` (This takes a long time to compile, if you wish to skip, just make sure you check the required toolchains and their versions, see the function [`check_toolchains`](../zkFOCIL-impl/bberg/bootstrap.sh).)
    - Local bootstrap: run `./bootstrap.sh` in `bberg/barretenberg/cpp` (This also takes a long time to compile everything in barretenberg, but its recommended to run this once.)
-2. Running ZKFocil tests:
+2. Running ZKFocil tests and benchmarks:
    - Compile: `cmake --build --preset default --target stdlib_zkfocil_tests`
    - Run tests: `(cd build && ./bin/stdlib_zkfocil_tests)` (Note that the parentheses mean that bash runs the test command in a subshell)
    - Run specific test(s): `(cd build && ./bin/stdlib_zkfocil_tests --gtest_filter=*keyword*)` (This will run all tests with names that contain `keyword`.)
+   - Compile with bench preset (run only once): `cmake --preset bench && cmake --build --preset bench --target stdlib_zkfocil_tests`
+   - Compile on changes: `cmake --build --preset bench --target ultra_honk_bench`
+   - Run benchmarks: `(cd build-bench && ./bin/ultra_honk_bench --benchmark_filter=construct_proof_ultrahonk/zkfocil)`
 3. IPA integration:
    - WIP WIP
