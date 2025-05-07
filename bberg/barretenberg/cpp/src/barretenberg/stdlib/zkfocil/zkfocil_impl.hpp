@@ -10,7 +10,10 @@
 #include "barretenberg/stdlib/hash/blake2s/blake2s.hpp"
 #include "barretenberg/stdlib/hash/pedersen/pedersen.hpp"
 #include "barretenberg/stdlib/primitives/circuit_builders/circuit_builders_fwd.hpp"
+#include "barretenberg/stdlib/primitives/curves/bn254.hpp"
+#include "barretenberg/stdlib/primitives/curves/grumpkin.hpp"
 #include "barretenberg/stdlib/primitives/curves/secp256k1.hpp"
+#include "barretenberg/stdlib/primitives/curves/secp256r1.hpp"
 #include "barretenberg/stdlib/primitives/group/cycle_group.hpp"
 #include "zkfocil.hpp"
 #include <array>
@@ -91,8 +94,17 @@ template <typename Builder, typename Curve, typename Fq, typename Fr, typename G
 zkfocil_inputs<Builder, Curve, Fq, Fr, G1> construct_zkfocil_inputs(Builder& builder, size_t /*unused*/)
 {
     using bb_fr = bb::fr;
-    using curve_fr = Curve::fr;
-    using curve_g1 = Curve::g1;
+
+    using curve_fr = typename std::conditional_t<std::is_same_v<Curve, stdlib::bn254<Builder>> ||
+                                                     std::is_same_v<Curve, stdlib::grumpkin<Builder>>,
+                                                 typename Curve::ScalarFieldNative,
+                                                 typename Curve::fr>;
+
+    using curve_g1 = typename std::conditional_t<std::is_same_v<Curve, stdlib::bn254<Builder>> ||
+                                                     std::is_same_v<Curve, stdlib::grumpkin<Builder>>,
+                                                 typename Curve::GroupNative,
+                                                 typename Curve::g1>;
+
     using MemoryTree = bb::crypto::merkle_tree::MemoryStore;
     using PedersenHashPolicy = bb::crypto::merkle_tree::PedersenHashPolicy;
     using MerkleTree = bb::crypto::merkle_tree::MerkleTree<MemoryTree, PedersenHashPolicy>;
@@ -153,18 +165,17 @@ zkfocil_inputs<Builder, Curve, Fq, Fr, G1> construct_zkfocil_inputs(Builder& bui
     return ckt_inputs;
 }
 
-template <typename Builder> void generate_zkfocil_test_circuit(Builder& builder, size_t num_iterations)
+template <typename Builder, typename Curve> void generate_zkfocil_test_circuit(Builder& builder, size_t num_iterations)
 {
-    using curve = stdlib::secp256k1<Builder>;
-    using fq_ct = typename curve::fq_ct;
-    using bigfr_ct = typename curve::bigfr_ct;
-    using g1_bigfr_ct = typename curve::g1_bigfr_ct;
+    using fq_ct = typename Curve::fq_ct;
+    using bigfr_ct = typename Curve::bigfr_ct;
+    using g1_bigfr_ct = typename Curve::g1_bigfr_ct;
 
-    auto zkfocil_inputs = stdlib::zkfocil::construct_zkfocil_inputs<Builder, curve, fq_ct, bigfr_ct, g1_bigfr_ct>(
+    auto zkfocil_inputs = stdlib::zkfocil::construct_zkfocil_inputs<Builder, Curve, fq_ct, bigfr_ct, g1_bigfr_ct>(
         builder, num_iterations);
 
     // Call the zkfocil circuit
-    stdlib::zkfocil::zkfocil_circuit<Builder, curve, fq_ct, bigfr_ct, g1_bigfr_ct>(zkfocil_inputs);
+    stdlib::zkfocil::zkfocil_circuit<Builder, Curve, fq_ct, bigfr_ct, g1_bigfr_ct>(zkfocil_inputs);
 }
 
 } // namespace bb::stdlib::zkfocil
