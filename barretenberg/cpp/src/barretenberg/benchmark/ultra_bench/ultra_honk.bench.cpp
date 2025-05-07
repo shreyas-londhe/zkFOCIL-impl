@@ -41,9 +41,10 @@ BENCHMARK_CAPTURE(construct_proof_ultrahonk,
                   &stdlib::generate_merkle_membership_test_circuit<UltraCircuitBuilder>)
     ->Unit(kMillisecond);
 
-BENCHMARK_CAPTURE(construct_proof_ultrahonk,
-                  zkfocil,
-                  &stdlib::zkfocil::generate_zkfocil_test_circuit<UltraCircuitBuilder>)
+BENCHMARK_CAPTURE(
+    construct_proof_ultrahonk,
+    zkfocil,
+    &stdlib::zkfocil::generate_zkfocil_test_circuit<UltraCircuitBuilder, stdlib::secp256k1<UltraCircuitBuilder>>)
     ->Unit(kMillisecond)
     ->Iterations(20);
 

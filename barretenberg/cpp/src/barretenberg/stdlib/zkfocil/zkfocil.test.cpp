@@ -17,7 +17,7 @@ using namespace bb;
 using namespace bb::crypto;
 
 using Builder = UltraCircuitBuilder;
-using curve_ = stdlib::secp256k1<Builder>;
+
 using curveR1 = stdlib::secp256r1<Builder>;
 
 namespace {
@@ -26,6 +26,7 @@ auto& engine = numeric::get_debug_randomness();
 
 TEST(stdlibZkfocil, zkfocilBasic)
 {
+    using curve_ = stdlib::secp256k1<Builder>;
     using bool_ct = stdlib::bool_t<Builder>;
     using fq_ct = curve_::fq_ct;
     using bigfr_ct = curve_::bigfr_ct;
@@ -49,8 +50,35 @@ TEST(stdlibZkfocil, zkfocilBasic)
         Builder::NAME_STRING, "zkfocil", "Circuit", "Gate Count", builder.get_estimated_num_finalized_gates());
 }
 
+TEST(stdlibZkfocil, zkfocilBn254Basic)
+{
+    using curve_ = stdlib::bn254<Builder>;
+    using bool_ct = stdlib::bool_t<Builder>;
+    using fq_ct = stdlib::bigfield<Builder, Bn254FqParams>;
+    using fr_ct = stdlib::field_t<Builder>;
+    using g1_bigfq_ct = curve_::Group;
+
+    Builder builder = Builder();
+
+    auto zkfocil_inputs =
+        stdlib::zkfocil::construct_zkfocil_inputs<Builder, curve_, fq_ct, fr_ct, g1_bigfq_ct>(builder, 0);
+
+    // Call the zkfocil circuit
+    bool_ct zkfocil_result =
+        stdlib::zkfocil::zkfocil_circuit<Builder, curve_, fq_ct, fr_ct, g1_bigfq_ct>(zkfocil_inputs);
+    zkfocil_result.assert_equal(true, "zkfocil circuit failed");
+    bool proof_result = CircuitChecker::check(builder);
+    EXPECT_EQ(proof_result, true);
+
+    std::cerr << "num gates = " << builder.get_estimated_num_finalized_gates() << "\n";
+
+    benchmark_info(
+        Builder::NAME_STRING, "zkfocil", "Circuit", "Gate Count", builder.get_estimated_num_finalized_gates());
+}
+
 TEST(stdlibZkfocil, verifyProof)
 {
+    using curve_ = stdlib::secp256k1<Builder>;
     using bool_ct = stdlib::bool_t<Builder>;
     using fq_ct = curve_::fq_ct;
     using bigfr_ct = curve_::bigfr_ct;
