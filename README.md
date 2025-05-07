@@ -16,3 +16,12 @@
    - Run benchmarks: `(cd build-bench && ./bin/ultra_honk_bench --benchmark_filter=construct_proof_ultrahonk/zkfocil)`
 3. IPA integration:
    - WIP WIP
+
+Benchmarks (all timings in ms)
+
+|               Stage    |   bn254-kzg  | secp256k1-kzg | bn254-ipa  | secp256k1-ipa |
+|------------------------|----------------|----------------|----------------|----------------|
+| Num of gates           |    136261      |   137583       |    136261      |   137583       |
+| Witness Generation     |      888       |      905       |                |                |
+| Proof Generation       |      484       |      491       |                |                |
+| Verification           |      8.522     |    8.794       |                |                |
