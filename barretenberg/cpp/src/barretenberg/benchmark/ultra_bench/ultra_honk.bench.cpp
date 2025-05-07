@@ -41,10 +41,27 @@ BENCHMARK_CAPTURE(construct_proof_ultrahonk,
                   &stdlib::generate_merkle_membership_test_circuit<UltraCircuitBuilder>)
     ->Unit(kMillisecond);
 
-BENCHMARK_CAPTURE(
-    construct_proof_ultrahonk,
-    zkfocil,
-    &stdlib::zkfocil::generate_zkfocil_test_circuit<UltraCircuitBuilder, stdlib::secp256k1<UltraCircuitBuilder>>)
+BENCHMARK_CAPTURE(construct_proof_ultrahonk,
+                  zkfocil_secp256k1,
+                  &stdlib::zkfocil::generate_zkfocil_test_circuit<UltraCircuitBuilder,
+                                                                  stdlib::secp256k1<UltraCircuitBuilder>,
+                                                                  stdlib::secp256k1<UltraCircuitBuilder>::fr,
+                                                                  stdlib::secp256k1<UltraCircuitBuilder>::g1,
+                                                                  stdlib::secp256k1<UltraCircuitBuilder>::fq_ct,
+                                                                  stdlib::secp256k1<UltraCircuitBuilder>::bigfr_ct,
+                                                                  stdlib::secp256k1<UltraCircuitBuilder>::g1_bigfr_ct>)
+    ->Unit(kMillisecond)
+    ->Iterations(20);
+
+BENCHMARK_CAPTURE(construct_proof_ultrahonk,
+                  zkfocil_bn254,
+                  &stdlib::zkfocil::generate_zkfocil_test_circuit<UltraCircuitBuilder,
+                                                                  stdlib::bn254<UltraCircuitBuilder>,
+                                                                  stdlib::bn254<UltraCircuitBuilder>::ScalarFieldNative,
+                                                                  stdlib::bn254<UltraCircuitBuilder>::GroupNative,
+                                                                  stdlib::bn254<UltraCircuitBuilder>::fq_ct,
+                                                                  stdlib::bn254<UltraCircuitBuilder>::ScalarField,
+                                                                  stdlib::bn254<UltraCircuitBuilder>::Group>)
     ->Unit(kMillisecond)
     ->Iterations(20);
 

@@ -38,6 +38,7 @@ template <typename CircuitBuilder> struct bn254 {
     using bool_ct = bool_t<CircuitBuilder>;
     using uint32_ct = stdlib::uint32<CircuitBuilder>;
 
+    using fq_ct = bigfield<CircuitBuilder, bb::Bn254FqParams>;
     using bigfr_ct = bigfield<CircuitBuilder, bb::Bn254FrParams>;
     using g1_bigfr_ct = element<CircuitBuilder, BaseField, bigfr_ct, GroupNative>;
 
