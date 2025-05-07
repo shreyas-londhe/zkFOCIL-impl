@@ -135,11 +135,11 @@ The `noir/native_honk.sh` script provides timing information for the core crypto
 
 Here are example benchmark results from a run (on a 2024 MacBook Pro M3 Pro):
 
-| Operation                 | Time (seconds) |
-| :------------------------ | -------------: |
-| Witness Generation        |         3.5831 |
-| Proof Generation          |         2.5701 |
-| **Total Proving Time**    |     **6.1591** |
-| Proof Verification        |         0.0323 |
+| Operation                 | BLS12-381 | SECP256K1 |
+| :------------------------ | ---------: | --------: |
+| Witness Generation        |     3.5831s |     3.9315s |
+| Proof Generation          |     2.5701s |     3.0750s |
+| **Total Proving Time**    |     **6.1591s** |     **7.0134s** |
+| Proof Verification        |     0.0323s |     0.0455s |
 
 _Note: Circuit size (UltraHonk) reported during this run was 411,166 constraints. Performance may vary based on hardware and circuit complexity._

@@ -1,5 +1,17 @@
 import hashlib
-from py_ecc.optimized_bls12_381 import FQ, G1, multiply, normalize, Z1
+from py_ecc.optimized_bls12_381 import (
+    FQ as FQ_BLS,
+    G1 as G1_BLS,
+    multiply as multiply_bls,
+    normalize as normalize_bls,
+    Z1 as Z1_BLS,
+    curve_order as BLS12_381_ORDER,
+)
+from py_ecc.secp256k1.secp256k1 import (
+    multiply as multiply_secp,
+    G as G_SECP,
+    N as SECP256K1_ORDER,
+)
 import random
 import json
 from merkletools import MerkleTools  # Import merkletools
@@ -73,12 +85,12 @@ NUM_LEAVES = 1 << TEST_TREE_DEPTH
 
 
 def int_to_bytes_be(value, length=32):
-    # Allow length override for Fq elements (48 bytes)
+    # Allow length override for Fq elements (e.g., 48 bytes for BLS12-381)
     return value.to_bytes(length, byteorder="big")
 
 
 def int_to_bytes_le(value, length=32):
-    # Allow length override for Fq elements (48 bytes)
+    # Allow length override for Fq elements (e.g., 48 bytes for BLS12-381)
     return value.to_bytes(length, byteorder="little")
 
 
@@ -94,27 +106,38 @@ def hex_to_bytes(hex_str):
 
 
 # --- Helper to hash public key consistent with Noir's hash_public_key ---
-def hash_public_key_uncompressed(point):
+def hash_public_key_uncompressed(point, curve_params):
     """
-    Hashes a BLS12-381 G1 point by serializing uncompressed LE coordinates
-    (x_le || y_le) and using blake2s. Matches Noir's `hash_public_key`.
+    Hashes a G1 point by serializing uncompressed LE coordinates
+    (x_le || y_le) and using blake2s.
     Returns 32-byte LE hash.
     """
-    if point is None or point == Z1:
-        # Define hash for point at infinity if needed, e.g., hash of 96 zero bytes
-        serialized = bytes(96)
+    coord_bytes = curve_params["coord_bytes"]
+    normalize_func = curve_params["normalize_func"]
+    z1_point = curve_params["z1_point"]
+    fq_class = curve_params["fq_class"]
+
+    if point is None or point == z1_point:
+        serialized = bytes(2 * coord_bytes)
     else:
-        normalized = normalize(point)
+        normalized = normalize_func(point)
         x, y = normalized[0], normalized[1]
-        x_val = x.n if isinstance(x, FQ) else x
-        y_val = y.n if isinstance(y, FQ) else y
 
-        x_bytes_le = int_to_bytes_le(x_val, 48)
-        y_bytes_le = int_to_bytes_le(y_val, 48)
-        serialized = x_bytes_le + y_bytes_le  # 96 bytes total
+        # Adjust how x_val and y_val are obtained
+        if fq_class is not None and isinstance(x, fq_class):
+            x_val = x.n
+        else:
+            x_val = x  # Assume x is already an integer for secp256k1
 
-    # Hash using blake2s
-    # Note: hashlib.blake2s default digest size is 32 bytes
+        if fq_class is not None and isinstance(y, fq_class):
+            y_val = y.n
+        else:
+            y_val = y  # Assume y is already an integer for secp256k1
+
+        x_bytes_le = int_to_bytes_le(x_val, coord_bytes)
+        y_bytes_le = int_to_bytes_le(y_val, coord_bytes)
+        serialized = x_bytes_le + y_bytes_le
+
     hash_le = hashlib.blake2s(serialized).digest()
     return hash_le
 
@@ -173,8 +196,39 @@ def generate_merkle_data(
 
 
 def generate_test_inputs(
-    secret_key_hex=None, block_params_hex=None, output_format="test"
+    curve_name="secp256k1",
+    secret_key_hex=None,
+    block_params_hex=None,
+    output_format="test",
 ):
+    # --- Select Curve Parameters ---
+    if curve_name == "secp256k1":
+        curve_params = {
+            "order": SECP256K1_ORDER,
+            "g1_gen": G_SECP,
+            "multiply_func": multiply_secp,
+            "normalize_func": lambda p: p,
+            "z1_point": None,
+            "fq_class": None,
+            "coord_bytes": 32,
+        }
+    elif curve_name == "bls12_381":
+        curve_params = {
+            "order": BLS12_381_ORDER,
+            "g1_gen": G1_BLS,
+            "multiply_func": multiply_bls,
+            "normalize_func": normalize_bls,
+            "z1_point": Z1_BLS,
+            "fq_class": FQ_BLS,
+            "coord_bytes": 48,
+        }
+    else:
+        raise ValueError(f"Unsupported curve: {curve_name}")
+
+    CURVE_ORDER = curve_params["order"]
+    G1_GEN = curve_params["g1_gen"]
+    multiply_g1 = curve_params["multiply_func"]
+
     # --- Generate Secret Key and Block Params ---
     if secret_key_hex:
         secret_key_bytes = hex_to_bytes(secret_key_hex)
@@ -187,24 +241,21 @@ def generate_test_inputs(
         block_params_bytes = random.randbytes(32)
 
     # --- Calculate Expected PK and KI ---
-    CURVE_ORDER = (
-        52435875175126190479447740508185965837690552500527637822603658699938581184513
-    )
     secret_key_int = bytes_to_int(secret_key_bytes) % CURVE_ORDER
     secret_key_bytes = int_to_bytes_be(
         secret_key_int
     )  # Ensure canonical BE representation
 
-    public_key = multiply(G1, secret_key_int)
+    public_key = multiply_g1(G1_GEN, secret_key_int)
 
     combined_ki = secret_key_bytes + block_params_bytes
     hash_le_ki = hashlib.blake2s(combined_ki).digest()
     hash_be_ki = bytes(hash_le_ki)
     hash_int_ki = bytes_to_int(hash_be_ki) % CURVE_ORDER
-    key_image = multiply(G1, hash_int_ki)
+    key_image = multiply_g1(G1_GEN, hash_int_ki)
 
     # --- Hash the target public key (consistent with Noir) ---
-    target_pk_hash_le = hash_public_key_uncompressed(public_key)
+    target_pk_hash_le = hash_public_key_uncompressed(public_key, curve_params)
 
     # --- Generate Merkle Data ---
     merkle_data = generate_merkle_data(
@@ -215,19 +266,34 @@ def generate_test_inputs(
     validator_indices = merkle_data["indices"]  # List of 0s/1s
 
     # --- Format G1 Point Coordinates (LE bytes) ---
-    def format_g1_point_bytes(point):
-        if point is None or point == Z1:
-            return {"x_le_bytes": bytes(48), "y_le_bytes": bytes(48)}
-        normalized = normalize(point)
+    def format_g1_point_bytes(point, cp):
+        coord_bytes = cp["coord_bytes"]
+        normalize_func = cp["normalize_func"]
+        z1_point = cp["z1_point"]
+        fq_class = cp["fq_class"]
+
+        if point is None or point == z1_point:
+            return {"x_le_bytes": bytes(coord_bytes), "y_le_bytes": bytes(coord_bytes)}
+        normalized = normalize_func(point)
         x, y = normalized[0], normalized[1]
-        x_val = x.n if isinstance(x, FQ) else x
-        y_val = y.n if isinstance(y, FQ) else y
-        x_bytes = int_to_bytes_le(x_val, 48)
-        y_bytes = int_to_bytes_le(y_val, 48)
+
+        # Adjust how x_val and y_val are obtained
+        if fq_class is not None and isinstance(x, fq_class):
+            x_val = x.n
+        else:
+            x_val = x  # Assume x is already an integer for secp256k1
+
+        if fq_class is not None and isinstance(y, fq_class):
+            y_val = y.n
+        else:
+            y_val = y  # Assume y is already an integer for secp256k1
+
+        x_bytes = int_to_bytes_le(x_val, coord_bytes)
+        y_bytes = int_to_bytes_le(y_val, coord_bytes)
         return {"x_le_bytes": x_bytes, "y_le_bytes": y_bytes}
 
-    public_key_coords = format_g1_point_bytes(public_key)
-    key_image_coords = format_g1_point_bytes(key_image)
+    public_key_coords = format_g1_point_bytes(public_key, curve_params)
+    key_image_coords = format_g1_point_bytes(key_image, curve_params)
 
     # --- Format inputs for Noir test or TOML ---
     def format_byte_array_noir(byte_list):
@@ -316,13 +382,23 @@ if __name__ == "__main__":
         default="test",
         help="Output format ('test' for Noir test func, 'toml' for Prover.toml)",
     )
+    parser.add_argument(
+        "-c",
+        "--curve",
+        choices=["secp256k1", "bls12_381"],
+        default="secp256k1",  # Default to secp256k1 to match current main.nr
+        help="Elliptic curve to use for generating points and scalars.",
+    )
     parser.add_argument("--sk", help="Fixed secret key (hex string)")
     parser.add_argument("--bp", help="Fixed block params (hex string)")
     args = parser.parse_args()
 
     # Generate test case with specified format and optional fixed inputs
     test_case = generate_test_inputs(
-        secret_key_hex=args.sk, block_params_hex=args.bp, output_format=args.format
+        curve_name=args.curve,
+        secret_key_hex=args.sk,
+        block_params_hex=args.bp,
+        output_format=args.format,
     )
 
     # Save to JSON file for reference (always happens)

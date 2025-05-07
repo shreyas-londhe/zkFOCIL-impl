@@ -2,12 +2,12 @@ use crate::bytes::combine_bytes;
 use dep::bignum::{BigNum, fields::U256::U256};
 use dep::noir_bigcurve::{
     BigCurveTrait,
-    curves::bls12_381::{BLS12_381, BLS12_381Scalar},
+    curves::secp256k1::{Secp256k1, Secp256k1Scalar},
     ScalarFieldTrait,
 };
 use std::hash::blake2s;
 
-/// Converts a 32-byte big-endian array to a BLS12_381 scalar field element.
+/// Converts a 32-byte big-endian array to a Secp256k1 scalar field element.
 ///
 /// # Arguments
 ///
@@ -16,7 +16,7 @@ use std::hash::blake2s;
 /// # Returns
 ///
 /// The corresponding scalar field element.
-pub fn bytes_to_scalar(bytes: [u8; 32]) -> BLS12_381Scalar {
+pub fn bytes_to_scalar(bytes: [u8; 32]) -> Secp256k1Scalar {
     // Safety: Expand the scalar to 33 bytes
     let bn_bytes = unsafe { __expand_scalar(bytes) };
     assert(bn_bytes[0] == 0);
@@ -25,7 +25,7 @@ pub fn bytes_to_scalar(bytes: [u8; 32]) -> BLS12_381Scalar {
     }
 
     let bn = U256::from_be_bytes(bn_bytes);
-    BLS12_381Scalar::from_bignum(bn)
+    Secp256k1Scalar::from_bignum(bn)
 }
 
 unconstrained fn __expand_scalar(bytes: [u8; 32]) -> [u8; 33] {
@@ -36,7 +36,7 @@ unconstrained fn __expand_scalar(bytes: [u8; 32]) -> [u8; 33] {
     bn_bytes
 }
 
-/// Multiplies a BLS12_381 scalar by a BLS12_381 curve point.
+/// Multiplies a Secp256k1 scalar by a Secp256k1 curve point.
 ///
 /// # Arguments
 ///
@@ -46,7 +46,7 @@ unconstrained fn __expand_scalar(bytes: [u8; 32]) -> [u8; 33] {
 /// # Returns
 ///
 /// The result of the scalar multiplication.
-fn scalar_mul_point(scalar: BLS12_381Scalar, point: BLS12_381) -> BLS12_381 {
+fn scalar_mul_point(scalar: Secp256k1Scalar, point: Secp256k1) -> Secp256k1 {
     point.mul(scalar)
 }
 
@@ -60,8 +60,8 @@ fn scalar_mul_point(scalar: BLS12_381Scalar, point: BLS12_381) -> BLS12_381 {
 /// # Returns
 ///
 /// The corresponding public key (a curve point).
-pub fn derive_public_key(secret_key: BLS12_381Scalar) -> BLS12_381 {
-    scalar_mul_point(secret_key, BLS12_381::one()) // BLS12_381::one() is the conventional generator G
+pub fn derive_public_key(secret_key: Secp256k1Scalar) -> Secp256k1 {
+    scalar_mul_point(secret_key, Secp256k1::one()) // Secp256k1::one() is the conventional generator G
 }
 
 /// Derives the key image from the secret key and block parameters.
@@ -75,66 +75,66 @@ pub fn derive_public_key(secret_key: BLS12_381Scalar) -> BLS12_381 {
 /// # Returns
 ///
 /// The key image (a curve point).
-pub fn derive_key_image(secret_key_bytes: [u8; 32], block_params: [u8; 32]) -> BLS12_381 {
+pub fn derive_key_image(secret_key_bytes: [u8; 32], block_params: [u8; 32]) -> Secp256k1 {
     let combined_bytes = combine_bytes(secret_key_bytes, block_params);
     let hash = blake2s::<64>(combined_bytes);
-    let hash_scalar: BLS12_381Scalar = bytes_to_scalar(hash);
-    scalar_mul_point(hash_scalar, BLS12_381::one())
+    let hash_scalar: Secp256k1Scalar = bytes_to_scalar(hash);
+    scalar_mul_point(hash_scalar, Secp256k1::one())
 }
 
-/// Serializes a BLS12_381 point (public key) into a byte array.
+/// Serializes a Secp256k1 point (public key) into a byte array.
 /// Concatenates the little-endian byte representations of the x and y coordinates.
-/// Each coordinate (Fq element) is 48 bytes. Total output is 96 bytes.
+/// Each coordinate (Fq element) is 32 bytes. Total output is 64 bytes.
 ///
 /// # Arguments
 ///
-/// * `pk` - The BLS12_381 point (public key).
+/// * `pk` - The Secp256k1 point (public key).
 ///
 /// # Returns
 ///
-/// A 96-byte array representing the serialized public key (x_bytes_le || y_bytes_le).
-fn serialize_public_key_le(pk: BLS12_381) -> [u8; 96] {
+/// A 64-byte array representing the serialized public key (x_bytes_le || y_bytes_le).
+fn serialize_public_key_le(pk: Secp256k1) -> [u8; 64] {
     // BLS12_381 coordinates are Fq elements, which are 48 bytes each.
-    let x_bytes: [u8; 48] = pk.x.to_le_bytes();
-    let y_bytes: [u8; 48] = pk.y.to_le_bytes();
+    let x_bytes: [u8; 32] = pk.x.to_le_bytes();
+    let y_bytes: [u8; 32] = pk.y.to_le_bytes();
 
     // Safety: The result is a valid combination of the input byte arrays
     let combined = unsafe { __combine_coordinates(x_bytes, y_bytes) };
-    for i in 0..48 {
+    for i in 0..32 {
         assert(combined[i] == x_bytes[i]);
-        assert(combined[i + 48] == y_bytes[i]);
+        assert(combined[i + 32] == y_bytes[i]);
     }
     combined
 }
 
-unconstrained fn __combine_coordinates(x_bytes: [u8; 48], y_bytes: [u8; 48]) -> [u8; 96] {
-    let mut combined: [u8; 96] = [0; 96];
-    for i in 0..48 {
+unconstrained fn __combine_coordinates(x_bytes: [u8; 32], y_bytes: [u8; 32]) -> [u8; 64] {
+    let mut combined: [u8; 64] = [0; 64];
+    for i in 0..32 {
         combined[i] = x_bytes[i];
-        combined[i + 48] = y_bytes[i];
+        combined[i + 32] = y_bytes[i];
     }
     combined
 }
 
-/// Hashes a BLS12_381 public key using Blake2s.
+/// Hashes a Secp256k1 public key using Blake2s.
 /// Serializes the point coordinates (x, y) in little-endian format, concatenates them,
-/// and then computes the Blake2s hash of the resulting 96 bytes.
+/// and then computes the Blake2s hash of the resulting 64 bytes.
 ///
 /// # Arguments
 ///
-/// * `public_key` - The BLS12_381 point representing the public key.
+/// * `public_key` - The Secp256k1 point representing the public key.
 ///
 /// # Returns
 ///
 /// The 32-byte Blake2s hash of the serialized public key (little-endian).
-pub fn hash_public_key(public_key: BLS12_381) -> [u8; 32] {
+pub fn hash_public_key(public_key: Secp256k1) -> [u8; 32] {
     // Serialize the public key (x || y, both LE)
-    let serialized_pk = serialize_public_key_le(public_key); // [u8; 96]
+    let serialized_pk = serialize_public_key_le(public_key); // [u8; 64]
 
     // Hash the serialized bytes
     // Need to specify the input length for blake2s
     // TODO: Compressed public key can be used to reduce computation
-    let hash_result = blake2s::<96>(serialized_pk); // Returns [u8; 32] LE
+    let hash_result = blake2s::<64>(serialized_pk); // Returns [u8; 32] LE
 
     hash_result
 }
