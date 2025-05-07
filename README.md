@@ -22,6 +22,7 @@ Benchmarks (all timings in ms)
 |               Stage    |   bn254-kzg  | secp256k1-kzg | bn254-ipa  | secp256k1-ipa |
 |------------------------|----------------|----------------|----------------|----------------|
 | Num of gates           |    136261      |   137583       |    136261      |   137583       |
-| Witness Generation     |      888       |      905       |                |                |
-| Proof Generation       |      484       |      491       |                |                |
-| Verification           |      8.522     |    8.794       |                |                |
+| Witness Generation (ms) |      888       |      905       |                |                |
+| Proof Generation   (ms) |      484       |      491       |                |                |
+| Verification       (ms) |      8.522     |    8.794       |                |                |
+| Proof size (bytes)      |   440         |      440        |                |                |
