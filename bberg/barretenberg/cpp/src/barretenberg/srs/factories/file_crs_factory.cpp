@@ -8,6 +8,7 @@
 #include "barretenberg/ecc/scalar_multiplication/point_table.hpp"
 #include "barretenberg/ecc/scalar_multiplication/scalar_multiplication.hpp"
 #include "barretenberg/srs/factories/crs_factory.hpp"
+#include <iostream>
 
 namespace bb::srs::factories {
 
@@ -32,7 +33,6 @@ template <typename Curve>
 FileVerifierCrs<Curve, CrsType::Transparent>::FileVerifierCrs(std::string const& path, const size_t num_points)
     : num_points(num_points)
 {
-    // using Curve = curve::Grumpkin;
     monomials_ = scalar_multiplication::point_table_alloc<typename Curve::AffineElement>(num_points);
     srs::IO<Curve>::read_transcript_g1(monomials_.get(), num_points, path);
     scalar_multiplication::generate_pippenger_point_table<Curve>(monomials_.get(), monomials_.get(), num_points);

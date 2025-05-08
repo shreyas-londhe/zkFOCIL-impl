@@ -1,6 +1,7 @@
 #include "../io.hpp"
 #include "barretenberg/ecc/curves/bn254/bn254.hpp"
 #include "barretenberg/ecc/curves/bn254/pairing.hpp"
+#include "barretenberg/ecc/curves/grumpkin/grumpkin.hpp"
 #include "barretenberg/srs/factories/crs_factory.hpp"
 #include "barretenberg/srs/factories/mem_bn254_crs_factory.hpp"
 #include "barretenberg/srs/factories/mem_grumpkin_crs_factory.hpp"
@@ -47,36 +48,24 @@ TEST(reference_string, mem_bn254_file_consistency)
               0);
 }
 
-// TEST(reference_string, mem_bn254_transparent_file_consistency)
-// {
-//     // Load 1024 from file.
-//     auto file_crs = FileCrsFactory<BN254>(bb::srs::get_bn254_crs_path(), 1024);
+TEST(reference_string, bn254_transparent_file_consistency)
+{
+    // Load 1024 from file.
+    auto file_crs = FileCrsFactory<BN254>(bb::srs::get_bn254_crs_path(), 1024);
 
-//     // Use low level io lib to read 1024 from file.
-//     std::vector<g1::affine_element> points(1024);
-//     ::srs::IO<BN254>::read_transcript_g1(points.data(), 1024, bb::srs::get_bn254_crs_path());
+    // Use low level io lib to read 1024 from file.
+    std::vector<g1::affine_element> points(1024);
+    ::srs::IO<BN254>::read_transcript_g1(points.data(), 1024, bb::srs::get_bn254_crs_path());
 
-//     MemBn254CrsFactory mem_crs(points, g2_point);
-//     auto file_prover_crs = file_crs.get_prover_crs(1024);
-//     auto mem_prover_crs = mem_crs.get_prover_crs(1024);
+    auto file_prover_crs = file_crs.get_prover_crs(1024);
+    auto file_verifier_crs = file_crs.get_typed_verifier_crs<CrsType::Transparent>(1024);
 
-//     EXPECT_EQ(mem_prover_crs->get_monomial_size(), file_prover_crs->get_monomial_size());
-
-//     EXPECT_EQ(memcmp(mem_prover_crs->get_monomial_points().data(),
-//                      file_prover_crs->get_monomial_points().data(),
-//                      sizeof(g1::affine_element) * 1024 * 2),
-//               0);
-
-//     auto file_verifier_crs = file_crs.get_typed_verifier_crs<CrsType::Trusted>();
-//     auto mem_verifier_crs = file_crs.get_typed_verifier_crs<CrsType::Trusted>();
-
-//     EXPECT_EQ(mem_verifier_crs->get_g2x(), file_verifier_crs->get_g2x());
-
-//     EXPECT_EQ(memcmp(mem_verifier_crs->get_precomputed_g2_lines(),
-//                      file_verifier_crs->get_precomputed_g2_lines(),
-//                      sizeof(pairing::miller_lines) * 2),
-//               0);
-// }
+    EXPECT_EQ(memcmp(file_verifier_crs->get_monomial_points().data(),
+                     file_prover_crs->get_monomial_points().data(),
+                     sizeof(Grumpkin::AffineElement) * 1024 * 2),
+              0);
+    EXPECT_EQ(file_verifier_crs->get_monomial_size(), file_prover_crs->get_monomial_size());
+}
 
 TEST(reference_string, mem_grumpkin_file_consistency)
 {
