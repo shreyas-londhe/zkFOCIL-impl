@@ -7,10 +7,12 @@
 #include "barretenberg/common/thread.hpp"
 #include "barretenberg/common/throw_or_abort.hpp"
 #include "barretenberg/constants.hpp"
+#include "barretenberg/ecc/curves/bn254/bn254.hpp"
 #include "barretenberg/ecc/scalar_multiplication/scalar_multiplication.hpp"
 #include "barretenberg/stdlib/hash/poseidon2/poseidon2.hpp"
 #include "barretenberg/stdlib/honk_verifier/ipa_accumulator.hpp"
 #include "barretenberg/stdlib/primitives/circuit_builders/circuit_builders_fwd.hpp"
+#include "barretenberg/stdlib/primitives/curves/bn254.hpp"
 #include "barretenberg/stdlib/transcript/transcript.hpp"
 #include "barretenberg/transcript/transcript.hpp"
 #include <cstddef>
@@ -329,12 +331,9 @@ template <typename Curve_> class IPA {
     {
         // Step 1.
         // Receive polynomial_degree + 1 = d from the prover
-        auto poly_length = static_cast<uint32_t>(transcript->template receive_from_prover<typename Curve::BaseField>(
+        auto poly_length = static_cast<uint32_t>(transcript->template receive_from_prover<curve::BN254::ScalarField>(
             "IPA:poly_degree_plus_1")); // note this is base field because this is a uint32_t, which should map
-                                        // to a bb::fr, not a grumpkin::fr, which is a BaseField element for
-                                        // Grumpkin
-
-        std::cout << "step 1" << std::endl;
+                                        // to a bb::fr, not a grumpkin::fr. So we set it to bn254::fr always.
 
         // Step 2.
         // Receive generator challenge u and compute auxiliary generator
@@ -351,8 +350,6 @@ template <typename Curve_> class IPA {
             throw_or_abort("IPA log_poly_length is too large " + std::to_string(log_poly_length));
         }
 
-        std::cout << "step 2" << std::endl;
-
         // Step 3.
         // Compute C' = C + f(\beta) ⋅ U
         GroupElement C_prime = opening_claim.commitment + (aux_generator * opening_claim.opening_pair.evaluation);
@@ -362,8 +359,6 @@ template <typename Curve_> class IPA {
         std::vector<Fr> round_challenges_inv(CONST_ECCVM_LOG_N);
         std::vector<Commitment> msm_elements(pippenger_size);
         std::vector<Fr> msm_scalars(pippenger_size);
-
-        std::cout << "step 3" << std::endl;
 
         // Step 4.
         // Receive all L_i and R_i and prepare for MSM
@@ -386,15 +381,11 @@ template <typename Curve_> class IPA {
             }
         }
 
-        std::cout << "step 4" << std::endl;
-
         // Step 5.
         // Compute C₀ = C' + ∑_{j ∈ [k]} u_j^{-1}L_j + ∑_{j ∈ [k]} u_jR_j
         GroupElement LR_sums = bb::scalar_multiplication::pippenger_without_endomorphism_basis_points<Curve>(
             {0, {&msm_scalars[0], /*size*/ pippenger_size}}, {&msm_elements[0], /*size*/ pippenger_size}, vk->pippenger_runtime_state);
         GroupElement C_zero = C_prime + LR_sums;
-
-        std::cout << "step 5" << std::endl;
 
         //  Step 6.
         // Compute b_zero where b_zero can be computed using the polynomial:
@@ -405,8 +396,6 @@ template <typename Curve_> class IPA {
             b_zero *= Fr::one() + (round_challenges_inv[log_poly_length - 1 - i] *
                                    opening_claim.opening_pair.challenge.pow(1 << i));
         }
-
-        std::cout << "step 6" << std::endl;
 
         // Step 7.
         // Construct vector s
@@ -428,8 +417,6 @@ template <typename Curve_> class IPA {
                 G_vec_local[i] = srs_elements[i * 2];
             }, thread_heuristics::FF_COPY_COST * 2);
 
-        std::cout << "step 7" << std::endl;
-
         // Step 8.
         // Compute G₀
         Commitment G_zero = bb::scalar_multiplication::pippenger_without_endomorphism_basis_points<Curve>(
@@ -437,19 +424,13 @@ template <typename Curve_> class IPA {
         Commitment G_zero_sent = transcript->template receive_from_prover<Commitment>("IPA:G_0");
         ASSERT(G_zero == G_zero_sent && "G_0 should be equal to G_0 sent in transcript.");
 
-        std::cout << "step 8" << std::endl;
-
         // Step 9.
         // Receive a₀ from the prover
         auto a_zero = transcript->template receive_from_prover<Fr>("IPA:a_0");
 
-        std::cout << "step 9" << std::endl;
-
         // Step 10.
         // Compute C_right
         GroupElement right_hand_side = G_zero * a_zero + aux_generator * a_zero * b_zero;
-
-        std::cout << "step 10" << std::endl;
 
         // Step 11.
         // Check if C_right == C₀
@@ -476,10 +457,9 @@ template <typename Curve_> class IPA {
     {
         // Step 1.
         // Receive polynomial_degree + 1 = d from the prover
-        auto poly_length_var = transcript->template receive_from_prover<typename Curve::BaseField>(
+        auto poly_length_var = transcript->template receive_from_prover<stdlib::bn254<typename Curve::Builder>>(
             "IPA:poly_degree_plus_1"); // note this is base field because this is a uint32_t, which should map
-                                       // to a bb::fr, not a grumpkin::fr, which is a BaseField element for
-                                       // Grumpkin
+                                       // to a bb::fr, not a grumpkin::fr. So we set it to bn254::fr always.
 
         // TODO(https://github.com/AztecProtocol/barretenberg/issues/1144): need checks here on poly_length.
         const auto poly_length = static_cast<uint32_t>(poly_length_var.get_value());
@@ -640,10 +620,9 @@ template <typename Curve_> class IPA {
     {
         // Step 1.
         // Receive polynomial_degree + 1 = d from the prover
-        auto poly_length_var = transcript->template receive_from_prover<typename Curve::BaseField>(
+        auto poly_length_var = transcript->template receive_from_prover<stdlib::bn254<typename Curve::Builder>>(
             "IPA:poly_degree_plus_1"); // note this is base field because this is a uint32_t, which should map
-                                       // to a bb::fr, not a grumpkin::fr, which is a BaseField element for
-                                       // Grumpkin
+                                       // to a bb::fr, not a grumpkin::fr. So we set it to bn254::fr always.
 
         // TODO(https://github.com/AztecProtocol/barretenberg/issues/1144): need checks here on poly_length.
         const auto poly_length = static_cast<uint32_t>(poly_length_var.get_value());
@@ -796,9 +775,7 @@ template <typename Curve_> class IPA {
                                                                  auto& transcript)
         requires(!Curve::is_stdlib_type)
     {
-        std::cout << "reduce_verify_batch_opening_claim:" << std::endl;
         const auto opening_claim = reduce_batch_opening_claim(batch_opening_claim);
-        std::cout << "reduce_batch_opening_claim done:" << std::endl;
         return reduce_verify_internal_native(vk, opening_claim, transcript);
     }
 

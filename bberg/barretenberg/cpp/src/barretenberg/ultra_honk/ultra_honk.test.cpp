@@ -14,6 +14,7 @@
 #include "barretenberg/ultra_honk/ultra_verifier.hpp"
 
 #include <gtest/gtest.h>
+#include <iostream>
 
 using namespace bb;
 

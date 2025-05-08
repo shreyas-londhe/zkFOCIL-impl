@@ -44,8 +44,6 @@ template <typename Flavor> bool DeciderVerifier_<Flavor>::verify()
     using ClaimBatch = ClaimBatcher::Batch;
     using VerifierCommitmentKey = typename Flavor::VerifierCommitmentKey;
 
-    std::cout << "decider verification starts." << std::endl;
-
     VerifierCommitments commitments{ accumulator->verification_key, accumulator->witness_commitments };
 
     const size_t log_circuit_size = static_cast<size_t>(accumulator->verification_key->log_circuit_size);
@@ -86,13 +84,10 @@ template <typename Flavor> bool DeciderVerifier_<Flavor>::verify()
                                                libra_commitments,
                                                sumcheck_output.claimed_libra_evaluation);
 
-    std::cout << "final pcs verification starts." << std::endl;
-
     // Decide final verification step based on the PCS type
     // TODO(suyash): maybe generalise this to work with any PCS
     bool verified = false;
     if constexpr (std::is_same_v<PCS, IPA<Curve>>) {
-        std::cout << "ipa pcs:" << std::endl;
         verified = PCS::reduce_verify_batch_opening_claim(
             opening_claim, accumulator->verification_key->pcs_verification_key, transcript);
     } else if constexpr (std::is_same_v<PCS, KZG<Curve>>) {
