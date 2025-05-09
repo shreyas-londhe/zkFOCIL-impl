@@ -62,6 +62,30 @@ Prover get_prover(void (*test_circuit_function)(typename Prover::Flavor::Circuit
 };
 
 /**
+ * @brief Performs witness generation for benchmarks based on a provided circuit function
+ *
+ * @details This function assumes state.range refers to num_iterations which is the number of times to perform a given
+ * basic operation in the circuit, e.g. number of hashes
+ *
+ * @tparam Builder
+ * @param state
+ * @param test_circuit_function
+ */
+ template <typename Prover>
+ void generate_prover_with_specified_num_iterations(
+     benchmark::State& state,
+     void (*test_circuit_function)(typename Prover::Flavor::CircuitBuilder&, size_t),
+     size_t num_iterations)
+ {
+     srs::init_crs_factory(bb::srs::get_ignition_crs_path());
+ 
+     for (auto _ : state) {
+         // Construct circuit and prover
+         Prover prover = get_prover<Prover>(test_circuit_function, num_iterations);
+     }
+ }
+
+/**
  * @brief Performs proof constuction for benchmarks based on a provided circuit function
  *
  * @details This function assumes state.range refers to num_iterations which is the number of times to perform a given
