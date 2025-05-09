@@ -73,7 +73,7 @@ cmake --preset bench
 cmake --build --preset bench --target ultra_honk_bench && (cd build-bench && ./bin/ultra_honk_bench --benchmark_filter=zkfocil)
 ```
 
-#### Benchmarks (all timings in milliseconds)
+#### Benchmarking Results
 
 |               Stage    |   bn254-kzg  | secp256k1-kzg | bn254-ipa  | secp256k1-ipa |
 |------------------------|----------------|-----------------|----------------|----------------|
