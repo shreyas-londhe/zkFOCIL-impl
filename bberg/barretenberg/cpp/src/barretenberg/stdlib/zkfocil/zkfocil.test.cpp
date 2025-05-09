@@ -115,13 +115,15 @@ TEST(stdlibZkfocil, verifyProof)
     Verifier verifier(verification_key);
     auto proof = prover.construct_proof();
 
-    std::cout << "Proof size: " << proof.size() << " bytes" << "\n";
+    std::cout << "Proof size: " << proof.size() << " bytes"
+              << "\n";
 
     auto start = std::chrono::high_resolution_clock::now();
     bool verified = verifier.verify_proof(proof);
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-    std::cout << "Verification time: " << duration.count() << " microseconds" << "\n";
+    std::cout << "Verification time: " << duration.count() << " microseconds"
+              << "\n";
 
     EXPECT_EQ(verified, true);
 }
@@ -160,12 +162,16 @@ TEST(stdlibZkfocil, verifyBn254Proof)
     auto verification_key = std::make_shared<VerificationKey>(proving_key->proving_key);
     Verifier verifier(verification_key);
     auto proof = prover.construct_proof();
-    // print proof size
-    std::cout << "Proof size: " << proof.size() << " bytes" << "\n";
+
+    std::cout << "Proof size: " << proof.size() << " bytes"
+              << "\n";
+
     auto start = std::chrono::high_resolution_clock::now();
     bool verified = verifier.verify_proof(proof);
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-    std::cout << "Verification time: " << duration.count() << " microseconds" << "\n";
+    std::cout << "Verification time: " << duration.count() << " microseconds"
+              << "\n";
+
     EXPECT_EQ(verified, true);
 }
