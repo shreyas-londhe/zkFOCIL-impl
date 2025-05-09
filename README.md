@@ -1,23 +1,79 @@
 # ZKFocil with Barretenberg
 
-### Instructions for running the zkfocil test
+ZKFocil circuit is written with the standard library in barretenberg. The circuit specification is described [here](https://hackmd.io/qRtuRAD3Q4KeXZr8TxvUng?view#SNARK-Design-for-zkFOCIL). In this implementation, we test and benchmark the circuit with BN254 and SECP256K1 keys. Ethereum validator keys are on BLS381-12 but BLS is not supported in barretenberg's stdlib. Note that we use BN254 as the base curve of the ZKFocil circuit.
 
-1. Install barretenberg
-   - Installing and building barretenberg locally on MacOS is likely to run into issues. Use a Linux machine if possible. (Note: I have set up a GCP VM instance (n2-standard-4 (4 vCPUs, 16 GB memory)) for us to compile and build on barretenberg.)
-   - Install dependencies: `sudo apt-get install cmake clang clang-format ninja-build libstdc++-12-dev`
-   - Top-level bootstrap: run `./bootstrap.sh` in `bberg` (This takes a long time to compile, if you wish to skip, just make sure you check the required toolchains and their versions, see the function [`check_toolchains`](../zkFOCIL-impl/bberg/bootstrap.sh).)
-   - Local bootstrap: run `./bootstrap.sh` in `bberg/barretenberg/cpp` (This also takes a long time to compile everything in barretenberg, but its recommended to run this once.)
-2. Running ZKFocil tests and benchmarks:
-   - Compile: `cmake --build --preset default --target stdlib_zkfocil_tests`
-   - Run tests: `(cd build && ./bin/stdlib_zkfocil_tests)` (Note that the parentheses mean that bash runs the test command in a subshell)
-   - Run specific test(s): `(cd build && ./bin/stdlib_zkfocil_tests --gtest_filter=*keyword*)` (This will run all tests with names that contain `keyword`.)
-   - Compile with bench preset (run only once): `cmake --preset bench && cmake --build --preset bench --target stdlib_zkfocil_tests`
-   - Compile on changes: `cmake --build --preset bench --target ultra_honk_bench`
-   - Run benchmarks: `(cd build-bench && ./bin/ultra_honk_bench --benchmark_filter=construct_proof_ultrahonk/zkfocil)`
-3. IPA integration:
-   - WIP WIP
+#### Installing Barretenberg
 
-Benchmarks (all timings in ms)
+```bash
+# Install system dependencies
+sudo apt-get update
+sudo apt-get install -y cmake clang clang-format ninja-build libstdc++-12-dev
+
+# Clone the repository
+git clone https://github.com/shreyas-londhe/zkFOCIL-impl
+
+# Change to the project directory
+cd zkFOCIL-impl
+
+# Bootstrap at the top-level (inside bberg/)
+# This step sets up dependencies and build configurations
+cd bberg
+./bootstrap.sh
+
+# Bootstrap at the cpp-level (inside bberg/barretenberg/cpp/)
+# This step builds the core Barretenberg library
+cd barretenberg/cpp
+./bootstrap.sh
+```
+
+#### Generate CRS for IPA with BN254
+
+You must generate a BN254 CRS to be used with IPA commitment scheme (with BN254). This is a one-time step and should generate a `transcript00.dat` file in `bberg/barretenberg/cpp/srs_db/bn254/monomial`.
+
+```bash
+# We will run the script to generate 2^22 points on the BN254 curve using the "nothing up my sleeves" principle.
+# The source code can be found at:
+# bberg/barretenberg/cpp/src/barretenberg/bn254_transparent_srs_gen/bn254_transparent_srs_gen.cpp
+
+# Step 1: Compile the script (from within bberg/barretenberg/cpp)
+# This step is optional if the bootstrap completed successfully during installation.
+cmake --build --preset default --target bn254_transparent_srs_gen
+
+# Step 2: Run the script to generate 2^22 = 4194304 points.
+# The parentheses allow running from a sub-shell without changing your current directory.
+# The CRS file is stored at bberg/barretenberg/cpp/srs_db/bn254/monomial/transcript00.dat (size 256 MB)
+(cd build && ./bin/bn254_transparent_srs_gen 4194304)
+```
+
+#### Run benchmarks for ZKFocil with KZG
+
+```bash
+# Run tests of the ZKFocil circuit with BN254 and SECP256K1 keys.
+cmake --build --preset default --target stdlib_zkfocil_tests && (cd build && ./bin/stdlib_zkfocil_tests)
+
+# Run prover benchmark for the ZKFocil circuit with BN254 and SECP256K1 keys.
+cmake --preset bench
+cmake --build --preset bench --target ultra_honk_bench && (cd build-bench && ./bin/ultra_honk_bench --benchmark_filter=zkfocil)
+```
+
+#### Run benchmarks for ZKFocil with IPA (no trusted setup)
+
+Note: Getting the IPA to work with BN254 required a quite a bit of work (to decouple IPA from Grumpkin), so bootstrapping will throw lot of errors in other parts of the repository. We only care about getting tests and benchmarks working for the ZKFocil circuit.
+
+```bash
+# Before you run the IPA benchmarks, it is necessary to have generated the CRS for IPA, see [above](#generate-crs-for-ipa-with-bn254).
+# First, we switch to the ipa branch:
+git checkout sb/ipa
+
+# Run tests of the ZKFocil circuit with BN254 and SECP256K1 keys.
+cmake --build --preset default --target stdlib_zkfocil_tests && (cd build && ./bin/stdlib_zkfocil_tests)
+
+# Run prover benchmark for the ZKFocil circuit with BN254 and SECP256K1 keys.
+cmake --preset bench
+cmake --build --preset bench --target ultra_honk_bench && (cd build-bench && ./bin/ultra_honk_bench --benchmark_filter=zkfocil)
+```
+
+#### Benchmarks (all timings in milliseconds)
 
 |               Stage    |   bn254-kzg  | secp256k1-kzg | bn254-ipa  | secp256k1-ipa |
 |------------------------|----------------|-----------------|----------------|----------------|
