@@ -51,7 +51,7 @@ bool_t<Builder> zkfocil_circuit(const zkfocil_inputs<Builder, Curve, Fq, Fr, G1>
     }
 
     // Check if the public key is valid
-    auto computed_public_key = G1::batch_mul({ G1::one(builder) }, { inputs.secret_key });
+    auto computed_public_key = G1::wnaf_batch_mul({ G1::one(builder) }, { inputs.secret_key });
     inputs.public_key.x.assert_equal(computed_public_key.x);
     inputs.public_key.y.assert_equal(computed_public_key.y);
 
@@ -80,7 +80,7 @@ bool_t<Builder> zkfocil_circuit(const zkfocil_inputs<Builder, Curve, Fq, Fr, G1>
     Fr hash_output_field(hash_output.slice(0, 32));
 
     // Check if key image is valid
-    auto computed_key_image = G1::batch_mul({ G1::one(builder) }, { hash_output_field });
+    auto computed_key_image = G1::wnaf_batch_mul({ G1::one(builder) }, { hash_output_field });
     inputs.key_image.x.assert_equal(computed_key_image.x);
     inputs.key_image.y.assert_equal(computed_key_image.y);
 
