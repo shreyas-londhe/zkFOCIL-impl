@@ -75,10 +75,12 @@ cmake --build --preset bench --target ultra_honk_bench && (cd build-bench && ./b
 
 #### Benchmarking Results
 
+We ran the benchmarking on a high-end server with 2x AMD EPYC 7R13 processors, each with 48 cores and 2 threads per core (total 192 logical CPUs).
+
 |               Stage    |   bn254-kzg  | secp256k1-kzg | bn254-ipa  | secp256k1-ipa |
 |------------------------|----------------|-----------------|----------------|----------------|
-| Num of gates           |    136261      |   137583        |    136261      |   137583       |
-| Witness Generation (ms) |      888       |      905       |       965      |      975       |
-| Proof Generation   (ms) |      484       |      491       |      2237      |    2401        |
-| Verification       (ms) |      8.522     |    8.794       |       93.5    |     86.9        |
+| Num of gates           |    111227      |   110946        |    111227      |   110946       |
+| Witness Generation (ms) |      835       |      844       |       800      |      818       |
+| Proof Generation   (ms) |      387       |      384       |      1596      |    1663        |
+| Verification       (ms) |      8.839     |    9.771       |       48.3    |     45.9        |
 | Proof size (bytes)      |   440         |      440        |        586     |        586     |
