@@ -75,10 +75,22 @@ cmake --build --preset bench --target ultra_honk_bench && (cd build-bench && ./b
 
 #### Benchmarking Results
 
-|               Stage    |   bn254-kzg  | secp256k1-kzg | bn254-ipa  | secp256k1-ipa |
-|------------------------|----------------|-----------------|----------------|----------------|
-| Num of gates           |    136261      |   137583        |    136261      |   137583       |
-| Witness Generation (ms) |      888       |      905       |       965      |      975       |
-| Proof Generation   (ms) |      484       |      491       |      2237      |    2401        |
-| Verification       (ms) |      8.522     |    8.794       |       93.5    |     86.9        |
-| Proof size (bytes)      |   440         |      440        |        586     |        586     |
+##### 2x AMD EPYC 7R13 (48C/96T each, 192 logical CPUs total)
+
+| Stage                   | bn254-kzg | secp256k1-kzg | bn254-ipa | secp256k1-ipa |
+| ----------------------- | --------- | ------------- | --------- | ------------- |
+| Num of gates            | 136261    | 137583        | 136261    | 137583        |
+| Witness Generation (ms) | 888       | 905           | 965       | 975           |
+| Proof Generation (ms)   | 484       | 491           | 2237      | 2401          |
+| Verification (ms)       | 8.522     | 8.794         | 93.5      | 86.9          |
+| Proof size (bytes)      | 440       | 440           | 586       | 586           |
+
+##### GCP `e2-standard-16 (16vCPU (8 core), 64 GB memory)`
+
+| Stage                   | bn254-kzg | secp256k1-kzg | bn254-ipa | secp256k1-ipa |
+| ----------------------- | --------- | ------------- | --------- | ------------- |
+| Num of gates            | 136261    | 137583        | 136261    | 137583        |
+| Witness Generation (ms) | 846       | 853           | 855       | 850           |
+| Proof Generation (ms)   | 605       | 597           | 1679      | 1700          |
+| Verification (ms)       | 8.522     | 8.794         | 93.5      | 86.9          |
+| Proof size (bytes)      | 440       | 440           | 586       | 586           |
