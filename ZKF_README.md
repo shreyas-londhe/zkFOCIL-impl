@@ -2,85 +2,82 @@
 
 ZKFocil circuit is written with the standard library in barretenberg. The circuit specification is described [here](https://hackmd.io/qRtuRAD3Q4KeXZr8TxvUng?view#SNARK-Design-for-zkFOCIL). In this implementation, we test and benchmark the circuit with BN254 and SECP256K1 keys. Ethereum validator keys are on BLS381-12 but BLS is not supported in barretenberg's stdlib. Note that we use BN254 as the base curve of the ZKFocil circuit.
 
-#### Installing Barretenberg
+We use the Ultra Honk proof system in barretenberg to generate proofs for the zkFOCIL circuit. We test the circuit with two different univariate polynomial commitment schemes:
 
-```bash
-# Install system dependencies
-sudo apt-get update
-sudo apt-get install -y cmake clang clang-format ninja-build libstdc++-12-dev
+1. KZG (Kate-Zaverucha-Goldberg): Requires a one-time trusted setup.
+2. IPA (Inner Product Argument): No trusted setup is required.
 
-# Clone the repository
-git clone https://github.com/shreyas-londhe/zkFOCIL-impl
+The branch `bberg-zkfocil-kzg` contains the implementation of zkFOCIL circuit with KZG polynomial commitment scheme. The branch `bberg-zkfocil-ipa` contains the implementation of zkFOCIL circuit with IPA polynomial commitment scheme.
 
-# Change to the project directory
-cd zkFOCIL-impl
+### Running the zkFOCIL circuit with KZG backend
 
-# Bootstrap at the top-level (inside bberg/)
-# This step sets up dependencies and build configurations
-cd bberg
-./bootstrap.sh
+The zkFOCIL circuit is implemented in a fork of the original [aztec-packages](https://github.com/AztecProtocol/aztec-packages) repository.
+Installing barretenberg and running the benchmarks requires a few steps. It is recommended to use a Linux environment for building and running the benchmarks. The following instructions will guide you through the process.
 
-# Bootstrap at the cpp-level (inside bberg/barretenberg/cpp/)
-# This step builds the core Barretenberg library
-cd barretenberg/cpp
-./bootstrap.sh
-```
+- Clone the [zkFOCIL](https://github.com/shreyas-londhe/zkFOCIL-impl) repository and switch the `bberg-zkfocil-kzg` branch.
 
-#### Generate CRS for IPA with BN254
+  ```bash
+  # Clone the repository
+  git clone https://github.com/shreyas-londhe/zkFOCIL-impl
 
-You must generate a BN254 CRS to be used with IPA commitment scheme (with BN254). This is a one-time step and should generate a `transcript00.dat` file in `bberg/barretenberg/cpp/srs_db/bn254/monomial`.
+  # Switch to the bberg-zkfocil-kzg branch
+  cd zkFOCIL-impl
+  git checkout bberg-zkfocil-kzg
+  ```
 
-```bash
-# We will run the script to generate 2^22 points on the BN254 curve using the "nothing up my sleeves" principle.
-# The source code can be found at:
-# bberg/barretenberg/cpp/src/barretenberg/bn254_transparent_srs_gen/bn254_transparent_srs_gen.cpp
+- Open the zkFOCIL repository in VSCode and install the recommended extensions. This will help you with syntax highlighting, code formatting, and other development features.
+- On opening the repository in VSCode, you should see a notification in the bottom right corner of VSCode prompting you reopen the folder in a container. Click on "Reopen in Container" to set up the development environment with all the necessary dependencies and tools.
 
-# Step 1: Compile the script (from within bberg/barretenberg/cpp)
-# This step is optional if the bootstrap completed successfully during installation.
-cmake --build --preset default --target bn254_transparent_srs_gen
+  <img src="./vscode-container-notification.png" width="400" alt="ZKFocil architecture">
 
-# Step 2: Run the script to generate 2^22 = 4194304 points.
-# The parentheses allow running from a sub-shell without changing your current directory.
-# The CRS file is stored at bberg/barretenberg/cpp/srs_db/bn254/monomial/transcript00.dat (size 256 MB)
-(cd build && ./bin/bn254_transparent_srs_gen 4194304)
-```
+- If you don't see the notification, you can manually open the command palette (`Ctrl + Shift + P`) and select "Remote-Containers: Reopen in Container". This will set up the development environment with all the necessary dependencies and tools.
+- Once the container is set up, you must first download the SRS required to run KZG prover in barretenberg. The SRS is a large file, so it may take some time to download.
 
-#### Run benchmarks for ZKFocil with KZG
+  ```bash
+  # Download the SRS file
+  cd barretenberg/cpp
+  (cd srs_db && ./download_ignition.sh 3) # don't forget the parentheses, it just runs the command in a subshell
+  ```
 
-```bash
-# Run tests of the ZKFocil circuit with BN254 and SECP256K1 keys.
-cmake --build --preset default --target stdlib_zkfocil_tests && (cd build && ./bin/stdlib_zkfocil_tests)
+- You can now run the zkFOCIL tests and benchmarks. To run the tests, run the following commands:
 
-# Run prover benchmark for the ZKFocil circuit with BN254 and SECP256K1 keys.
-cmake --preset bench
-cmake --build --preset bench --target ultra_honk_bench && (cd build-bench && ./bin/ultra_honk_bench --benchmark_filter=zkfocil)
-```
+  ```bash
+  # Use the default preset to build the project
+  cmake --preset default
 
-#### Run benchmarks for ZKFocil with IPA (no trusted setup)
+  # Run tests of the ZKFocil circuit
+  # This will only build and run the tests for the ZKFocil circuit and not the whole of barretenberg. Building the whole of barretenberg can take a _very_ long time.
+  cmake --build --preset default --target stdlib_zkfocil_tests && (cd build && ./bin/stdlib_zkfocil_tests)
+  ```
 
-Note: Getting the IPA to work with BN254 required a quite a bit of work (to decouple IPA from Grumpkin), so bootstrapping will throw lot of errors in other parts of the repository. We only care about getting tests and benchmarks working for the ZKFocil circuit.
+- To run the benchmarks, use the following command:
 
-```bash
-# Before you run the IPA benchmarks, it is necessary to have generated the CRS for IPA, see [above](#generate-crs-for-ipa-with-bn254).
-# First, we switch to the ipa branch:
-git checkout sb/ipa
+  ```bash
+  # Use the bench preset to build the project for benchmarking
+  cmake --preset bench
 
-# Run tests of the ZKFocil circuit with BN254 and SECP256K1 keys.
-cmake --build --preset default --target stdlib_zkfocil_tests && (cd build && ./bin/stdlib_zkfocil_tests)
+  # Run prover benchmark for the ZKFocil circuit
+  cmake --build --preset bench --target ultra_honk_bench && (cd build-bench && ./bin/ultra_honk_bench --benchmark_filter=zkfocil)
+  ```
 
-# Run prover benchmark for the ZKFocil circuit with BN254 and SECP256K1 keys.
-cmake --preset bench
-cmake --build --preset bench --target ultra_honk_bench && (cd build-bench && ./bin/ultra_honk_bench --benchmark_filter=zkfocil)
-```
+### Benchmarking Results
 
-#### Benchmarking Results
+Machine 1: 2x AMD EPYC 7R13 (48C/96T each, 192 logical CPUs total)
 
-We ran the benchmarking on a high-end server with 2x AMD EPYC 7R13 processors, each with 48 cores and 2 threads per core (total 192 logical CPUs).
+| Stage                   | bn254-kzg | secp256k1-kzg | bn254-ipa | secp256k1-ipa |
+| ----------------------- | --------- | ------------- | --------- | ------------- |
+| Num of gates            | 111227    | 110946        | 111227    | 110946        |
+| Witness Generation (ms) | 835       | 844           | 800       | 818           |
+| Proof Generation (ms)   | 387       | 384           | 1596      | 1663          |
+| Verification (ms)       | 8.839     | 9.771         | 48.3      | 45.9          |
+| Proof size (bytes)      | 440       | 440           | 586       | 586           |
 
-|               Stage    |   bn254-kzg  | secp256k1-kzg | bn254-ipa  | secp256k1-ipa |
-|------------------------|----------------|-----------------|----------------|----------------|
-| Num of gates           |    111227      |   110946        |    111227      |   110946       |
-| Witness Generation (ms) |      835       |      844       |       800      |      818       |
-| Proof Generation   (ms) |      387       |      384       |      1596      |    1663        |
-| Verification       (ms) |      8.839     |    9.771       |       48.3    |     45.9        |
-| Proof size (bytes)      |   440         |      440        |        586     |        586     |
+Machine 2: GCP e2-standard-16 (16vCPU (8 core), 64 GB memory)
+
+| Stage                   | bn254-kzg | secp256k1-kzg | bn254-ipa | secp256k1-ipa |
+| ----------------------- | --------- | ------------- | --------- | ------------- |
+| Num of gates            | 111227    | 110946        | 111227    | 110946        |
+| Witness Generation (ms) | 1129      | 1167          | -         | -             |
+| Proof Generation (ms)   | 807       | 838           | -         | -             |
+| Verification (ms)       | 12.75     | 15.47         | -         | -             |
+| Proof size (bytes)      | 440       | 440           | 586       | 586           |
