@@ -1,44 +1,83 @@
-# Aztec Monorepo
+# ZKFocil with Barretenberg
 
-All the packages that make up [Aztec](https://docs.aztec.network).
+ZKFocil circuit is written with the standard library in barretenberg. The circuit specification is described [here](https://hackmd.io/qRtuRAD3Q4KeXZr8TxvUng?view#SNARK-Design-for-zkFOCIL). In this implementation, we test and benchmark the circuit with BN254 and SECP256K1 keys. Ethereum validator keys are on BLS381-12 but BLS is not supported in barretenberg's stdlib. Note that we use BN254 as the base curve of the ZKFocil circuit.
 
-- [**`barretenberg`**](/noir-projects): The ZK prover backend that provides succinct verifiability for Aztec. Also houses the Aztec VM.
-- [**`l1-contracts`**](/l1-contracts): Solidity code for the Ethereum contracts that process rollups
-- [**`noir-projects`**](/noir-projects): Noir code for Aztec contracts and protocol circuits.
-- [**`yarn-project`**](/yarn-project): Typescript code for client and backend
-- [**`docs`**](/docs): Documentation source for the docs site
+We use the Ultra Honk proof system in barretenberg to generate proofs for the zkFOCIL circuit. We test the circuit with two different univariate polynomial commitment schemes:
 
-## Popular packages
+1. KZG (Kate-Zaverucha-Goldberg): Requires a one-time trusted setup.
+2. IPA (Inner Product Argument): No trusted setup is required.
 
-- [Aztec.nr](./noir-projects/aztec-nr/): A [Noir](https://noir-lang.org) framework for smart contracts on Aztec.
-- [Aztec](./yarn-project/aztec/): A package for starting up local dev net modules, including a local 'sandbox' devnet, an Ethereum network, deployed rollup contracts and Aztec execution environment.
-- [Aztec.js](./yarn-project/aztec.js/): A tool for interacting with the Aztec network. It communicates via the [Private Execution Environment (PXE)](./yarn-project/pxe/).
-- [Example contracts](./noir-projects/noir-contracts/): Example contracts for the Aztec network, written in Noir.
-- [End to end tests](./yarn-project/end-to-end/): Integration tests written in Typescript--a good reference for how to use the packages for specific tasks.
-- [Aztec Boxes](./boxes/): Example starter projects.
+The branch `bberg-zkfocil-kzg` contains the implementation of zkFOCIL circuit with KZG polynomial commitment scheme. The branch `bberg-zkfocil-ipa` contains the implementation of zkFOCIL circuit with IPA polynomial commitment scheme.
 
-## Issues Board
+### Running the zkFOCIL circuit with KZG backend
 
-All issues being worked on are tracked on the [Aztec Github Project](https://github.com/orgs/AztecProtocol/projects/22). For a higher-level roadmap, check the [milestones overview](https://aztec.network/roadmap) section of our website.
+The zkFOCIL circuit is implemented in a fork of the original [aztec-packages](https://github.com/AztecProtocol/aztec-packages) repository.
+Installing barretenberg and running the benchmarks requires a few steps. It is recommended to use a Linux environment for building and running the benchmarks. The following instructions will guide you through the process.
 
-## Debugging
+- Clone the [zkFOCIL](https://github.com/shreyas-londhe/zkFOCIL-impl) repository and switch the `bberg-zkfocil-kzg` branch.
 
-Logging goes through the [Logger](yarn-project/foundation/src/log/) module in Typescript. `LOG_LEVEL` controls the default log level, and one can set alternate levels for specific modules, such as `debug; warn: module1, module2; error: module3`.
+  ```bash
+  # Clone the repository
+  git clone https://github.com/shreyas-londhe/zkFOCIL-impl
 
-## Releases
+  # Switch to the bberg-zkfocil-kzg branch
+  cd zkFOCIL-impl
+  git checkout bberg-zkfocil-kzg
+  ```
 
-Releases are driven by [release-please](https://github.com/googleapis/release-please), which maintains a 'Release PR' containing an updated CHANGELOG.md since the last release. Triggering a new release is simply a case of merging this PR to master. A [github workflow](./.github/workflows/release-please.yml) will create the tagged release triggering ./bootstrap.sh release to build and deploy the version at that tag.
+- Open the zkFOCIL repository in VSCode and install the recommended extensions. This will help you with syntax highlighting, code formatting, and other development features.
+- On opening the repository in VSCode, you should see a notification in the bottom right corner of VSCode prompting you reopen the folder in a container. Click on "Reopen in Container" to set up the development environment with all the necessary dependencies and tools.
 
-## Contribute
+  <img src="./vscode-container-notification.png" width="400" alt="ZKFocil architecture">
 
-There are many ways you can participate and help build high quality software. Check out the [contribution guide](CONTRIBUTING.md)!
+- If you don't see the notification, you can manually open the command palette (`Ctrl + Shift + P`) and select "Remote-Containers: Reopen in Container". This will set up the development environment with all the necessary dependencies and tools.
+- Once the container is set up, you must first download the SRS required to run KZG prover in barretenberg. The SRS is a large file, so it may take some time to download.
 
-## Syncing noir
+  ```bash
+  # Download the SRS file
+  cd barretenberg/cpp
+  (cd srs_db && ./download_ignition.sh 3) # don't forget the parentheses, it just runs the command in a subshell
+  ```
 
-We use marker commits and [git-subrepo](https://github.com/ingydotnet/git-subrepo) (for a subset of its intended use) to manage a mirror of noir. This tool was chosen because it makes code checkout and development as simple as possible (compared to submodules or subtrees), with the tradeoff of complexity around sync's.
+- You can now run the zkFOCIL tests and benchmarks. To run the tests, run the following commands:
 
-## Development and CI
+  ```bash
+  # Use the default preset to build the project
+  cmake --preset default
 
-For a broad overview of the CI system take a look at [CI.md](CI.md).
+  # Run tests of the ZKFocil circuit
+  # This will only build and run the tests for the ZKFocil circuit and not the whole of barretenberg. Building the whole of barretenberg can take a _very_ long time.
+  cmake --build --preset default --target stdlib_zkfocil_tests && (cd build && ./bin/stdlib_zkfocil_tests)
+  ```
 
-For some deeper information on individual scripts etc (for developing CI itself), take a look at [ci3/README.md](ci3/README.md).
+- To run the benchmarks, use the following command:
+
+  ```bash
+  # Use the bench preset to build the project for benchmarking
+  cmake --preset bench
+
+  # Run prover benchmark for the ZKFocil circuit
+  cmake --build --preset bench --target ultra_honk_bench && (cd build-bench && ./bin/ultra_honk_bench --benchmark_filter=zkfocil)
+  ```
+
+### Benchmarking Results
+
+Machine 1: 2x AMD EPYC 7R13 (48C/96T each, 192 logical CPUs total)
+
+| Stage                   | bn254-kzg | secp256k1-kzg | bn254-ipa | secp256k1-ipa |
+| ----------------------- | --------- | ------------- | --------- | ------------- |
+| Num of gates            | 111227    | 110946        | 111227    | 110946        |
+| Witness Generation (ms) | 835       | 844           | 800       | 818           |
+| Proof Generation (ms)   | 387       | 384           | 1596      | 1663          |
+| Verification (ms)       | 8.839     | 9.771         | 48.3      | 45.9          |
+| Proof size (bytes)      | 440       | 440           | 586       | 586           |
+
+Machine 2: GCP e2-standard-16 (16vCPU (8 core), 64 GB memory)
+
+| Stage                   | bn254-kzg | secp256k1-kzg | bn254-ipa | secp256k1-ipa |
+| ----------------------- | --------- | ------------- | --------- | ------------- |
+| Num of gates            | 111227    | 110946        | 111227    | 110946        |
+| Witness Generation (ms) | 1129      | 1167          | -         | -             |
+| Proof Generation (ms)   | 807       | 838           | -         | -             |
+| Verification (ms)       | 12.75     | 15.47         | -         | -             |
+| Proof size (bytes)      | 440       | 440           | 586       | 586           |
