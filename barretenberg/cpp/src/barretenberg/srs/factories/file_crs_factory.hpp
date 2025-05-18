@@ -20,14 +20,14 @@ template <typename Curve> class FileCrsFactory : public CrsFactory<Curve> {
 
     std::shared_ptr<bb::srs::factories::ProverCrs<Curve>> get_prover_crs(size_t degree) override;
 
-    std::shared_ptr<bb::srs::factories::VerifierCrs<Curve>> get_verifier_crs(size_t degree = 0) override;
+    VerifierCrsVariant<Curve> get_verifier_crs(CrsType crs_type, size_t degree = 0) override;
 
   private:
     std::string path_;
     size_t prover_degree_;
     size_t verifier_degree_;
     std::shared_ptr<bb::srs::factories::ProverCrs<Curve>> prover_crs_;
-    std::shared_ptr<bb::srs::factories::VerifierCrs<Curve>> verifier_crs_;
+    VerifierCrsVariant<Curve> verifier_crs_;
 };
 
 template <typename Curve> class FileProverCrs : public ProverCrs<Curve> {
@@ -69,12 +69,12 @@ template <typename Curve> class FileProverCrs : public ProverCrs<Curve> {
     std::shared_ptr<typename Curve::AffineElement[]> monomials_;
 };
 
-template <typename Curve> class FileVerifierCrs : public VerifierCrs<Curve> {
+template <typename Curve, CrsType Type> class FileVerifierCrs : public VerifierCrs<Curve, Type> {
   public:
     FileVerifierCrs(std::string const& path, const size_t num_points);
 };
 
-template <> class FileVerifierCrs<curve::BN254> : public VerifierCrs<curve::BN254> {
+template <> class FileVerifierCrs<curve::BN254, CrsType::Trusted> : public VerifierCrs<curve::BN254, CrsType::Trusted> {
     using Curve = curve::BN254;
 
   public:
@@ -90,20 +90,21 @@ template <> class FileVerifierCrs<curve::BN254> : public VerifierCrs<curve::BN25
     pairing::miller_lines* precomputed_g2_lines;
 };
 
-template <> class FileVerifierCrs<curve::Grumpkin> : public VerifierCrs<curve::Grumpkin> {
-    using Curve = curve::Grumpkin;
+template <typename Curve>
+class FileVerifierCrs<Curve, CrsType::Transparent> : public VerifierCrs<Curve, CrsType::Transparent> {
+    // using Curve = curve::BN254;
 
   public:
     FileVerifierCrs(std::string const& path, const size_t num_points);
     virtual ~FileVerifierCrs() = default;
-    std::span<const Curve::AffineElement> get_monomial_points() const override;
+    std::span<const typename Curve::AffineElement> get_monomial_points() const override;
     size_t get_monomial_size() const override;
     Curve::AffineElement get_g1_identity() const override { return g1_identity; };
 
   private:
     Curve::AffineElement g1_identity;
     size_t num_points;
-    std::shared_ptr<Curve::AffineElement[]> monomials_;
+    std::shared_ptr<typename Curve::AffineElement[]> monomials_;
 };
 
 } // namespace bb::srs::factories

@@ -58,7 +58,7 @@ TYPED_TEST(VerificationKeyFixture, VkDataVsRecursionHashNative)
 
     auto file_crs =
         std::make_unique<bb::srs::factories::FileCrsFactory<curve::BN254>>(bb::srs::get_ignition_crs_path());
-    auto file_verifier = file_crs->get_verifier_crs();
+    auto file_verifier = file_crs->get_typed_verifier_crs<srs::factories::CrsType::Trusted>();
 
     auto native_vk = std::make_shared<verification_key>(std::move(vk_data_copy), file_verifier);
     auto recurs_vk = RecursVk::from_witness(&builder, native_vk);
@@ -79,7 +79,7 @@ TYPED_TEST(VerificationKeyFixture, HashVsHashNative)
 
     auto file_crs =
         std::make_unique<bb::srs::factories::FileCrsFactory<curve::BN254>>(bb::srs::get_ignition_crs_path());
-    auto file_verifier = file_crs->get_verifier_crs();
+    auto file_verifier = file_crs->get_typed_verifier_crs<srs::factories::CrsType::Trusted>();
 
     auto native_vk = std::make_shared<verification_key>(std::move(vk_data), file_verifier);
     auto recurs_vk = RecursVk::from_witness(&builder, native_vk);

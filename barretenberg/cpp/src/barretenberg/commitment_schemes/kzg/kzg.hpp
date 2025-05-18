@@ -15,7 +15,7 @@ template <typename Curve_> class KZG {
   public:
     using Curve = Curve_;
     using CK = CommitmentKey<Curve>;
-    using VK = VerifierCommitmentKey<Curve>;
+    using VK = VerifierCommitmentKey<Curve, CrsType::Trusted>;
     using Fr = typename Curve::ScalarField;
     using Commitment = typename Curve::AffineElement;
     using GroupElement = typename Curve::Element;

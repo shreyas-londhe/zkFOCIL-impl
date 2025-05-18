@@ -7,6 +7,7 @@
 #include "barretenberg/plonk_honk_shared/types/aggregation_object_type.hpp"
 #include "barretenberg/polynomials/evaluation_domain.hpp"
 #include "barretenberg/serialize/msgpack.hpp"
+#include "barretenberg/srs/factories/crs_factory.hpp"
 #include "barretenberg/srs/global_crs.hpp"
 #include <map>
 
@@ -53,12 +54,14 @@ inline bool operator==(verification_key_data const& lhs, verification_key_data c
 struct verification_key {
     // default constructor needed for msgpack unpack
     verification_key() = default;
-    verification_key(verification_key_data&& data,
-                     std::shared_ptr<bb::srs::factories::VerifierCrs<curve::BN254>> const& crs);
-    verification_key(size_t num_gates,
-                     size_t num_inputs,
-                     std::shared_ptr<bb::srs::factories::VerifierCrs<curve::BN254>> const& crs,
-                     CircuitType circuit_type);
+    verification_key(
+        verification_key_data&& data,
+        std::shared_ptr<bb::srs::factories::VerifierCrs<curve::BN254, srs::factories::CrsType::Trusted>> const& crs);
+    verification_key(
+        size_t num_gates,
+        size_t num_inputs,
+        std::shared_ptr<bb::srs::factories::VerifierCrs<curve::BN254, srs::factories::CrsType::Trusted>> const& crs,
+        CircuitType circuit_type);
 
     verification_key(const verification_key& other);
     verification_key(verification_key&& other) noexcept;
@@ -88,7 +91,7 @@ struct verification_key {
 
     bb::evaluation_domain domain;
 
-    std::shared_ptr<bb::srs::factories::VerifierCrs<curve::BN254>> reference_string;
+    std::shared_ptr<bb::srs::factories::VerifierCrs<curve::BN254, srs::factories::CrsType::Trusted>> reference_string;
 
     std::map<std::string, bb::g1::affine_element> commitments;
 
@@ -122,7 +125,10 @@ struct verification_key {
     void msgpack_unpack(auto obj)
     {
         verification_key_data data = obj;
-        *this = verification_key{ std::move(data), bb::srs::get_bn254_crs_factory()->get_verifier_crs() };
+        *this = verification_key{
+            std::move(data),
+            bb::srs::get_bn254_crs_factory()->get_typed_verifier_crs<srs::factories::CrsType::Trusted>()
+        };
     }
     // Alias verification_key as verification_key_data in the schema
     void msgpack_schema(auto& packer) const { packer.pack_schema(bb::plonk::verification_key_data{}); }
@@ -133,7 +139,9 @@ template <typename B> inline void read(B& buf, verification_key& key)
     using serialize::read;
     verification_key_data vk_data;
     read(buf, vk_data);
-    key = verification_key{ std::move(vk_data), bb::srs::get_bn254_crs_factory()->get_verifier_crs() };
+    key = verification_key{
+        std::move(vk_data), bb::srs::get_bn254_crs_factory()->get_typed_verifier_crs<srs::factories::CrsType::Trusted>()
+    };
 }
 
 template <typename B> inline void read(B& buf, std::shared_ptr<verification_key>& key)
@@ -141,7 +149,9 @@ template <typename B> inline void read(B& buf, std::shared_ptr<verification_key>
     using serialize::read;
     verification_key_data vk_data;
     read(buf, vk_data);
-    key = std::make_shared<verification_key>(std::move(vk_data), bb::srs::get_bn254_crs_factory()->get_verifier_crs());
+    key = std::make_shared<verification_key>(
+        std::move(vk_data),
+        bb::srs::get_bn254_crs_factory()->get_typed_verifier_crs<srs::factories::CrsType::Trusted>());
 }
 
 template <typename B> inline void write(B& buf, verification_key const& key)

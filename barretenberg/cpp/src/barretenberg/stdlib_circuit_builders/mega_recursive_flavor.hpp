@@ -1,6 +1,7 @@
 #pragma once
 #include "barretenberg/commitment_schemes/commitment_key.hpp"
 #include "barretenberg/commitment_schemes/kzg/kzg.hpp"
+#include "barretenberg/commitment_schemes/verification_key.hpp"
 #include "barretenberg/ecc/curves/bn254/g1.hpp"
 #include "barretenberg/flavor/flavor.hpp"
 #include "barretenberg/flavor/flavor_macros.hpp"
@@ -43,7 +44,7 @@ template <typename BuilderType> class MegaRecursiveFlavor_ {
     // indicates when evaluating sumcheck, edges can be left as degree-1 monomials
     static constexpr bool USE_SHORT_MONOMIALS = MegaFlavor::USE_SHORT_MONOMIALS;
     // Note(luke): Eventually this may not be needed at all
-    using VerifierCommitmentKey = bb::VerifierCommitmentKey<NativeFlavor::Curve>;
+    using VerifierCommitmentKey = bb::VerifierCommitmentKey<NativeFlavor::Curve, CrsType::Trusted>;
     // Indicates that this flavor runs with non-ZK Sumcheck.
     static constexpr bool HasZK = false;
     // To achieve fixed proof size and that the recursive verifier circuit is constant, we are using padding in Sumcheck

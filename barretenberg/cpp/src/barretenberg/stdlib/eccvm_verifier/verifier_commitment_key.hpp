@@ -7,7 +7,7 @@ namespace bb {
  *
  * @tparam Builder
  */
-template <typename Curve_> class VerifierCommitmentKey {
+template <typename Curve_> class RecursiveVerifierCommitmentKey {
   public:
     using Curve = Curve_;
     using Builder = Curve::Builder;
@@ -23,10 +23,11 @@ template <typename Curve_> class VerifierCommitmentKey {
      * @details The Grumpkin SRS points will be initialised as constants in the circuit but might be subsequently
      * turned into constant witnesses to make operations in the circuit more efficient.
      */
-    VerifierCommitmentKey(
+    RecursiveVerifierCommitmentKey(
         [[maybe_unused]] Builder* builder,
         size_t num_points,
-        const std::shared_ptr<VerifierCommitmentKey<NativeEmbeddedCurve>>& native_pcs_verification_key)
+        const std::shared_ptr<VerifierCommitmentKey<NativeEmbeddedCurve, CrsType::Transparent>>&
+            native_pcs_verification_key)
         : g1_identity(Commitment(native_pcs_verification_key->get_g1_identity()))
     {
 

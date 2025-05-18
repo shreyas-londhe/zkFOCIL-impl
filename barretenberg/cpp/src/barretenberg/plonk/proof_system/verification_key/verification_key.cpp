@@ -3,6 +3,7 @@
 #include "barretenberg/crypto/sha256/sha256.hpp"
 #include "barretenberg/plonk/proof_system/constants.hpp"
 #include "barretenberg/polynomials/evaluation_domain.hpp"
+#include "barretenberg/srs/factories/crs_factory.hpp"
 
 namespace bb::plonk {
 
@@ -67,10 +68,11 @@ bb::fr verification_key_data::hash_native(const size_t hash_index) const
     return crypto::pedersen_hash::hash_buffer(preimage_data, hash_index);
 }
 
-verification_key::verification_key(const size_t num_gates,
-                                   const size_t num_inputs,
-                                   std::shared_ptr<bb::srs::factories::VerifierCrs<curve::BN254>> const& crs,
-                                   CircuitType circuit_type_)
+verification_key::verification_key(
+    const size_t num_gates,
+    const size_t num_inputs,
+    std::shared_ptr<bb::srs::factories::VerifierCrs<curve::BN254, srs::factories::CrsType::Trusted>> const& crs,
+    CircuitType circuit_type_)
     : circuit_type(circuit_type_)
     , circuit_size(num_gates)
     , log_circuit_size(numeric::get_msb(num_gates))
@@ -80,8 +82,9 @@ verification_key::verification_key(const size_t num_gates,
     , polynomial_manifest(circuit_type)
 {}
 
-verification_key::verification_key(verification_key_data&& data,
-                                   std::shared_ptr<bb::srs::factories::VerifierCrs<curve::BN254>> const& crs)
+verification_key::verification_key(
+    verification_key_data&& data,
+    std::shared_ptr<bb::srs::factories::VerifierCrs<curve::BN254, srs::factories::CrsType::Trusted>> const& crs)
     : circuit_type(static_cast<CircuitType>(data.circuit_type))
     , circuit_size(data.circuit_size)
     , log_circuit_size(numeric::get_msb(data.circuit_size))

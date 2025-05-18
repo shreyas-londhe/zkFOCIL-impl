@@ -1,6 +1,8 @@
 #pragma once
 #include <benchmark/benchmark.h>
 
+#include "barretenberg/commitment_schemes/ipa/ipa.hpp"
+#include "barretenberg/commitment_schemes/kzg/kzg.hpp"
 #include "barretenberg/crypto/merkle_tree/membership.hpp"
 #include "barretenberg/goblin/mock_circuits.hpp"
 #include "barretenberg/plonk/composer/standard_composer.hpp"
@@ -101,7 +103,13 @@ void construct_proof_with_specified_num_iterations(
     void (*test_circuit_function)(typename Prover::Flavor::CircuitBuilder&, size_t),
     size_t num_iterations)
 {
-    srs::init_crs_factory(bb::srs::get_ignition_crs_path());
+    if constexpr (std::same_as<typename Prover::Flavor::PCS, KZG<typename Prover::Flavor::Curve>>) {
+        // KZG requires a trusted setup SRS
+        bb::srs::init_crs_factory(bb::srs::get_ignition_crs_path());
+    } else {
+        // IPA requires simple CRS (using nothing up my sleeves principle)
+        bb::srs::init_crs_factory(bb::srs::get_bn254_crs_path());
+    }
 
     for (auto _ : state) {
         // Construct circuit and prover; don't include this part in measurement

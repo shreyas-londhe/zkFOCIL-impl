@@ -12,7 +12,7 @@ namespace {
 using namespace bb;
 using namespace bb::srs::factories;
 
-class MemVerifierCrs : public VerifierCrs<curve::BN254> {
+class MemVerifierCrs : public VerifierCrs<curve::BN254, CrsType::Trusted> {
   public:
     MemVerifierCrs(g2::affine_element g2_point, g1::affine_element const& g1_identity)
         : g1_identityx(g1_identity)
@@ -71,7 +71,7 @@ std::shared_ptr<bb::srs::factories::ProverCrs<curve::BN254>> MemBn254CrsFactory:
     return prover_crs_;
 }
 
-std::shared_ptr<bb::srs::factories::VerifierCrs<curve::BN254>> MemBn254CrsFactory::get_verifier_crs(size_t degree)
+VerifierCrsVariant<curve::BN254> MemBn254CrsFactory::get_verifier_crs(CrsType crs_type, size_t degree)
 {
 
     if (prover_crs_->get_monomial_size() < degree) {
@@ -79,6 +79,10 @@ std::shared_ptr<bb::srs::factories::VerifierCrs<curve::BN254>> MemBn254CrsFactor
                               prover_crs_->get_monomial_size(),
                               " vs ",
                               degree));
+    }
+
+    if (crs_type != CrsType::Trusted) {
+        throw_or_abort(format("only trusted crs supported in MemBn254CrsFactory!"));
     }
     return verifier_crs_;
 }

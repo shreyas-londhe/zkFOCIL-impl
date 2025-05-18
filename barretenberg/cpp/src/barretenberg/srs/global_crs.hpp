@@ -17,6 +17,12 @@ inline std::string get_grumpkin_crs_path()
     return env_var != nullptr ? std::string(env_var) : "../srs_db/grumpkin";
 }
 
+inline std::string get_bn254_crs_path()
+{
+    const char* env_var = std::getenv("BN254_CRS_PATH");
+    return env_var != nullptr ? std::string(env_var) : "../srs_db/bn254";
+}
+
 // Initializes the crs using files
 void init_crs_factory(std::string crs_path);
 void init_grumpkin_crs_factory(std::string crs_path);

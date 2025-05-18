@@ -1,4 +1,5 @@
 #pragma once
+#include "barretenberg/ecc/curves/grumpkin/grumpkin.hpp"
 #include "crs_factory.hpp"
 #include <cstddef>
 #include <utility>
@@ -17,11 +18,11 @@ class MemGrumpkinCrsFactory : public CrsFactory<curve::Grumpkin> {
 
     std::shared_ptr<bb::srs::factories::ProverCrs<curve::Grumpkin>> get_prover_crs(size_t degree) override;
 
-    std::shared_ptr<bb::srs::factories::VerifierCrs<curve::Grumpkin>> get_verifier_crs(size_t degree = 0) override;
+    VerifierCrsVariant<curve::Grumpkin> get_verifier_crs(CrsType crs_type, size_t degree = 0) override;
 
   private:
     std::shared_ptr<bb::srs::factories::ProverCrs<curve::Grumpkin>> prover_crs_;
-    std::shared_ptr<bb::srs::factories::VerifierCrs<curve::Grumpkin>> verifier_crs_;
+    VerifierCrsVariant<curve::Grumpkin> verifier_crs_;
 };
 
 } // namespace bb::srs::factories

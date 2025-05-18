@@ -8,6 +8,7 @@
 #include "barretenberg/plonk/proof_system/proving_key/proving_key.hpp"
 #include "barretenberg/plonk/transcript/transcript.hpp"
 #include "barretenberg/polynomials/polynomial_arithmetic.hpp"
+#include "barretenberg/srs/factories/crs_factory.hpp"
 #include "barretenberg/srs/factories/file_crs_factory.hpp"
 #include <gtest/gtest.h>
 
@@ -39,7 +40,8 @@ plonk::Verifier generate_verifier(std::shared_ptr<proving_key> circuit_proving_k
             state));
     }
 
-    auto crs = std::make_shared<bb::srs::factories::FileVerifierCrs<curve::BN254>>(bb::srs::get_ignition_crs_path());
+    auto crs = std::make_shared<bb::srs::factories::FileVerifierCrs<curve::BN254, srs::factories::CrsType::Trusted>>(
+        bb::srs::get_ignition_crs_path());
     std::shared_ptr<verification_key> circuit_verification_key =
         std::make_shared<verification_key>(circuit_proving_key->circuit_size,
                                            circuit_proving_key->num_public_inputs,

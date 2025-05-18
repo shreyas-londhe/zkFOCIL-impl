@@ -31,7 +31,7 @@ class MegaFlavor {
     using PCS = KZG<Curve>;
     using Polynomial = bb::Polynomial<FF>;
     using CommitmentKey = bb::CommitmentKey<Curve>;
-    using VerifierCommitmentKey = bb::VerifierCommitmentKey<Curve>;
+    using VerifierCommitmentKey = bb::VerifierCommitmentKey<Curve, CrsType::Trusted>;
     using TraceBlocks = MegaExecutionTraceBlocks;
 
     // indicates when evaluating sumcheck, edges can be left as degree-1 monomials

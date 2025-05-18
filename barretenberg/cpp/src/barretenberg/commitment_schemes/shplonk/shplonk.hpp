@@ -298,7 +298,7 @@ template <typename Curve> class ShplonkVerifier_ {
     using Fr = typename Curve::ScalarField;
     using GroupElement = typename Curve::Element;
     using Commitment = typename Curve::AffineElement;
-    using VK = VerifierCommitmentKey<Curve>;
+    using VK = VerifierCommitmentKey<Curve, CrsType::Trusted>;
 
   public:
     /**

@@ -70,8 +70,8 @@ std::shared_ptr<plonk::verification_key> StandardComposer::compute_verification_
         compute_proving_key(circuit_constructor);
     }
 
-    circuit_verification_key =
-        plonk::compute_verification_key_common(circuit_proving_key, crs_factory_->get_verifier_crs());
+    circuit_verification_key = plonk::compute_verification_key_common(
+        circuit_proving_key, crs_factory_->get_typed_verifier_crs<srs::factories::CrsType::Trusted>());
     circuit_verification_key->circuit_type = circuit_proving_key->circuit_type;
     circuit_verification_key->pairing_point_accumulator_public_input_indices =
         circuit_constructor.pairing_point_accumulator_public_input_indices;

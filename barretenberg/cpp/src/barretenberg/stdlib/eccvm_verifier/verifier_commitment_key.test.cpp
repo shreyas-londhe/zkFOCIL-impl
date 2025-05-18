@@ -7,8 +7,8 @@ template <typename Curve> class RecursiveVeriferCommitmentKeyTest : public testi
   public:
     using Builder = typename Curve::Builder;
     using NativeEmbeddedCurve = Builder::EmbeddedCurve;
-    using native_VK = VerifierCommitmentKey<NativeEmbeddedCurve>;
-    using VK = VerifierCommitmentKey<Curve>;
+    using native_VK = VerifierCommitmentKey<NativeEmbeddedCurve, CrsType::Transparent>;
+    using VK = RecursiveVerifierCommitmentKey<Curve>;
     static void SetUpTestSuite()
     {
         srs::init_crs_factory(bb::srs::get_ignition_crs_path());

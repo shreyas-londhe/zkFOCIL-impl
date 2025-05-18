@@ -23,7 +23,7 @@ class AvmFlavorSettings {
     using Commitment = G1::affine_element;
     using CommitmentHandle = G1::affine_element;
     using CommitmentKey = bb::CommitmentKey<Curve>;
-    using VerifierCommitmentKey = bb::VerifierCommitmentKey<Curve>;
+    using VerifierCommitmentKey = bb::VerifierCommitmentKey<Curve, CrsType::Trusted>;
     using RelationSeparator = FF;
 };
 

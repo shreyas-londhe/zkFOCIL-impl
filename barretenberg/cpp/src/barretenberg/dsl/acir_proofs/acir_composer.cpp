@@ -6,6 +6,7 @@
 #include "barretenberg/plonk/proof_system/proving_key/serialize.hpp"
 #include "barretenberg/plonk/proof_system/verification_key/sol_gen.hpp"
 #include "barretenberg/plonk/proof_system/verification_key/verification_key.hpp"
+#include "barretenberg/srs/factories/crs_factory.hpp"
 #include "barretenberg/stdlib/primitives/circuit_builders/circuit_builders_fwd.hpp"
 #include "contract.hpp"
 #include <memory>
@@ -94,8 +95,8 @@ std::shared_ptr<bb::plonk::verification_key> AcirComposer::init_verification_key
 
 void AcirComposer::load_verification_key(bb::plonk::verification_key_data&& data)
 {
-    verification_key_ = std::make_shared<bb::plonk::verification_key>(std::move(data),
-                                                                      srs::get_bn254_crs_factory()->get_verifier_crs());
+    verification_key_ = std::make_shared<bb::plonk::verification_key>(
+        std::move(data), srs::get_bn254_crs_factory()->get_typed_verifier_crs<srs::factories::CrsType::Trusted>());
 }
 
 bool AcirComposer::verify_proof(std::vector<uint8_t> const& proof)

@@ -48,7 +48,8 @@ TEST_F(StandardPlonkComposer, ComposerFromSerializedKeys)
     auto crs = std::make_unique<bb::srs::factories::FileCrsFactory<curve::BN254>>(bb::srs::get_ignition_crs_path());
     auto proving_key =
         std::make_shared<plonk::proving_key>(std::move(pk_data), crs->get_prover_crs(pk_data.circuit_size + 1));
-    auto verification_key = std::make_shared<plonk::verification_key>(std::move(vk_data), crs->get_verifier_crs());
+    auto verification_key = std::make_shared<plonk::verification_key>(
+        std::move(vk_data), crs->get_typed_verifier_crs<srs::factories::CrsType::Trusted>());
 
     auto builder2 = StandardCircuitBuilder();
     auto composer2 = StandardComposer();

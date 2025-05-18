@@ -332,7 +332,9 @@ template <typename OuterComposer> class stdlib_verifier : public testing::Test {
 
     static void check_pairing(const circuit_outputs& circuit_output)
     {
-        auto g2_lines = srs::get_bn254_crs_factory()->get_verifier_crs()->get_precomputed_g2_lines();
+        auto g2_lines = srs::get_bn254_crs_factory()
+                            ->get_typed_verifier_crs<srs::factories::CrsType::Trusted>()
+                            ->get_precomputed_g2_lines();
         g1::affine_element P[2];
         P[0].x = outer_scalar_field(circuit_output.aggregation_state.P0.x.get_value().lo);
         P[0].y = outer_scalar_field(circuit_output.aggregation_state.P0.y.get_value().lo);
@@ -347,7 +349,9 @@ template <typename OuterComposer> class stdlib_verifier : public testing::Test {
         info("number of gates in recursive verification circuit = ", outer_circuit.get_estimated_num_finalized_gates());
         const bool result = CircuitChecker::check(outer_circuit);
         EXPECT_EQ(result, expected_result);
-        auto g2_lines = srs::get_bn254_crs_factory()->get_verifier_crs()->get_precomputed_g2_lines();
+        auto g2_lines = srs::get_bn254_crs_factory()
+                            ->get_typed_verifier_crs<srs::factories::CrsType::Trusted>()
+                            ->get_precomputed_g2_lines();
         EXPECT_EQ(check_pairing_point_accum_public_inputs(outer_circuit, g2_lines), true);
     }
 

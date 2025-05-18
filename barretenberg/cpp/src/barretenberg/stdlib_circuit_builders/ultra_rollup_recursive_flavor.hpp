@@ -39,7 +39,7 @@ template <typename BuilderType> class UltraRollupRecursiveFlavor_ : public Ultra
     using GroupElement = typename Curve::Element;
     using Commitment = typename Curve::Element;
     using FF = typename Curve::ScalarField;
-    using VerifierCommitmentKey = bb::VerifierCommitmentKey<NativeFlavor::Curve>;
+    using VerifierCommitmentKey = bb::VerifierCommitmentKey<NativeFlavor::Curve, CrsType::Trusted>;
     using NativeVerificationKey = NativeFlavor::VerificationKey;
 
     /**
