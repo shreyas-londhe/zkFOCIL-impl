@@ -3,7 +3,11 @@
 #include "../primitives/bool/bool.hpp"
 #include "../primitives/byte_array/byte_array.hpp"
 #include "../primitives/field/field.hpp"
-	@@ -10,55 +11,43 @@
+#include "../primitives/group/cycle_group.hpp"
+#include "../primitives/witness/witness.hpp"
+#include "barretenberg/crypto/merkle_tree/hash_path.hpp"
+#include "barretenberg/crypto/schnorr/schnorr.hpp"
+#include "barretenberg/stdlib/primitives/curves/bn254.hpp"
 
 namespace bb::stdlib::zkfocil {
 
