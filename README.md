@@ -7,22 +7,22 @@ We use the Ultra Honk proof system in barretenberg to generate proofs for the zk
 1. KZG (Kate-Zaverucha-Goldberg): Requires a one-time trusted setup.
 2. IPA (Inner Product Argument): No trusted setup is required.
 
-The branch `bberg-zkfocil-kzg` contains the implementation of zkFOCIL circuit with KZG polynomial commitment scheme. The branch `bberg-zkfocil-ipa` contains the implementation of zkFOCIL circuit with IPA polynomial commitment scheme.
+The branch [`bberg-zkfocil-kzg`](https://github.com/shreyas-londhe/zkFOCIL-impl/tree/bberg-zkfocil-kzg) contains the implementation of zkFOCIL circuit with KZG polynomial commitment scheme. The branch [`bberg-zkfocil-ipa`](https://github.com/shreyas-londhe/zkFOCIL-impl/tree/bberg-zkfocil-ipa) contains the implementation of zkFOCIL circuit with IPA polynomial commitment scheme.
 
-### Running the zkFOCIL circuit with KZG backend
+### Running the zkFOCIL circuit with IPA backend
 
 The zkFOCIL circuit is implemented in a fork of the original [aztec-packages](https://github.com/AztecProtocol/aztec-packages) repository.
 Installing barretenberg and running the benchmarks requires a few steps. It is recommended to use a Linux environment for building and running the benchmarks. The following instructions will guide you through the process.
 
-- Clone the [zkFOCIL](https://github.com/shreyas-londhe/zkFOCIL-impl) repository and switch the `bberg-zkfocil-kzg` branch.
+- Clone the [zkFOCIL](https://github.com/shreyas-londhe/zkFOCIL-impl) repository and switch the `bberg-zkfocil-ipa` branch.
 
   ```bash
   # Clone the repository
   git clone https://github.com/shreyas-londhe/zkFOCIL-impl
 
-  # Switch to the bberg-zkfocil-kzg branch
+  # Switch to the bberg-zkfocil-ipa branch
   cd zkFOCIL-impl
-  git checkout bberg-zkfocil-kzg
+  git checkout bberg-zkfocil-ipa
   ```
 
 - Open the zkFOCIL repository in VSCode and install the recommended extensions. This will help you with syntax highlighting, code formatting, and other development features.
@@ -31,12 +31,17 @@ Installing barretenberg and running the benchmarks requires a few steps. It is r
   <img src="./vscode-container-notification.png" width="400" alt="ZKFocil architecture">
 
 - If you don't see the notification, you can manually open the command palette (`Ctrl + Shift + P`) and select "Remote-Containers: Reopen in Container". This will set up the development environment with all the necessary dependencies and tools.
-- Once the container is set up, you must first download the SRS required to run KZG prover in barretenberg. The SRS is a large file, so it may take some time to download.
+- Once the container is set up, you must first generate the CRS required to run IPA prover with BN254. This is a one-time setup and can be done by running the following command in the terminal:
 
   ```bash
-  # Download the SRS file
+  # Generate a BN254 CRS for the IPA prover (using nothing-up-my-sleeves principle). First, compile the BN254 transparent SRS generator
   cd barretenberg/cpp
-  (cd srs_db && ./download_ignition.sh 3) # don't forget the parentheses, it just runs the command in a subshell
+  cmake --build --preset default --target bn254_transparent_srs_gen
+
+  # Run the script to generate 2^22 = 4194304 points.
+  # The parentheses allow running from a sub-shell without changing your current directory.
+  # The CRS file is stored at bberg/barretenberg/cpp/srs_db/bn254/monomial/transcript00.dat (size 256 MB)
+  (cd build && ./bin/bn254_transparent_srs_gen 4194304)
   ```
 
 - You can now run the zkFOCIL tests and benchmarks. To run the tests, run the following commands:
@@ -77,7 +82,7 @@ Machine 2: GCP e2-standard-16 (16vCPU (8 core), 64 GB memory)
 | Stage                   | bn254-kzg | secp256k1-kzg | bn254-ipa | secp256k1-ipa |
 | ----------------------- | --------- | ------------- | --------- | ------------- |
 | Num of gates            | 111227    | 110946        | 111227    | 110946        |
-| Witness Generation (ms) | 1129      | 1167          | -         | -             |
-| Proof Generation (ms)   | 807       | 838           | -         | -             |
-| Verification (ms)       | 12.75     | 15.47         | -         | -             |
+| Witness Generation (ms) | 1129      | 1167          | 990       | 992           |
+| Proof Generation (ms)   | 807       | 838           | 1800      | 1838          |
+| Verification (ms)       | 12.75     | 15.47         | 119.36    | 97.44         |
 | Proof size (bytes)      | 440       | 440           | 586       | 586           |
