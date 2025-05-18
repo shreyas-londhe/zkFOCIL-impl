@@ -8,3 +8,4 @@ stdlib_pedersen_hash_tests
 stdlib_poseidon2_tests
 stdlib_schnorr_tests
 stdlib_sha256_tests
+stdlib_zkfocil_tests
