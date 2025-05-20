@@ -118,7 +118,7 @@ BENCHMARK_CAPTURE(verify_proof_ultrahonk,
                                                                   stdlib::secp256k1<UltraCircuitBuilder>::bigfr_ct,
                                                                   stdlib::secp256k1<UltraCircuitBuilder>::g1_bigfr_ct>)
     ->Unit(kMillisecond)
-    ->Iterations(50);
+    ->Iterations(20);
 
 BENCHMARK_CAPTURE(verify_proof_ultrahonk,
                   zkfocil_bn254,
@@ -130,7 +130,7 @@ BENCHMARK_CAPTURE(verify_proof_ultrahonk,
                                                                   stdlib::bn254<UltraCircuitBuilder>::ScalarField,
                                                                   stdlib::bn254<UltraCircuitBuilder>::Group>)
     ->Unit(kMillisecond)
-    ->Iterations(50);
+    ->Iterations(20);
 
 BENCHMARK(construct_proof_ultrahonk_power_of_2)
     // 2**15 gates to 2**20 gates

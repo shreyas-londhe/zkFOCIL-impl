@@ -84,5 +84,5 @@ Machine 2: GCP e2-standard-16 (16vCPU (8 core), 64 GB memory)
 | Num of gates            | 111227    | 110946        | 111227    | 110946        |
 | Witness Generation (ms) | 822       | 847           | 823       | 838           |
 | Proof Generation (ms)   | 567       | 572           | 1582      | 1587          |
-| Verification (ms)       | 12.75     | 15.47         | 119.36    | 97.44         |
+| Verification (ms)       | 12.75     | 15.47         | 85.6      | 86.4          |
 | Proof size (bytes)      | 440       | 440           | 586       | 586           |
