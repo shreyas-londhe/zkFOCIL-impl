@@ -82,7 +82,7 @@ Machine 2: GCP e2-standard-16 (16vCPU (8 core), 64 GB memory)
 | Stage                   | bn254-kzg | secp256k1-kzg | bn254-ipa | secp256k1-ipa |
 | ----------------------- | --------- | ------------- | --------- | ------------- |
 | Num of gates            | 111227    | 110946        | 111227    | 110946        |
-| Witness Generation (ms) | 1129      | 1167          | 990       | 992           |
-| Proof Generation (ms)   | 807       | 838           | 1800      | 1838          |
+| Witness Generation (ms) | 822       | 847           | 823       | 838           |
+| Proof Generation (ms)   | 567       | 572           | 1582      | 1587          |
 | Verification (ms)       | 12.75     | 15.47         | 119.36    | 97.44         |
 | Proof size (bytes)      | 440       | 440           | 586       | 586           |
