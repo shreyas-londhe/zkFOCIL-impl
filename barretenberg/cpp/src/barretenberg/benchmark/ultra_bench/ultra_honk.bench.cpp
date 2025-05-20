@@ -20,8 +20,8 @@ static void construct_proof_ultrahonk(State& state,
 /**
  * @brief Benchmark: Witness generation of a Ultra Honk proof for a circuit determined by the provided circuit function
  */
- static void generate_witness_ultrahonk(State& state,
-    void (*test_circuit_function)(UltraCircuitBuilder&, size_t)) noexcept
+static void generate_witness_ultrahonk(State& state,
+                                       void (*test_circuit_function)(UltraCircuitBuilder&, size_t)) noexcept
 {
     size_t num_iterations = 10; // 10x the circuit
     bb::mock_circuits::generate_prover_with_specified_num_iterations<UltraProver>(
@@ -53,28 +53,28 @@ BENCHMARK_CAPTURE(construct_proof_ultrahonk,
     ->Unit(kMillisecond);
 
 BENCHMARK_CAPTURE(generate_witness_ultrahonk,
-        zkfocil_secp256k1,
-        &stdlib::zkfocil::generate_zkfocil_test_circuit<UltraCircuitBuilder,
-                                                        stdlib::secp256k1<UltraCircuitBuilder>,
-                                                        stdlib::secp256k1<UltraCircuitBuilder>::fr,
-                                                        stdlib::secp256k1<UltraCircuitBuilder>::g1,
-                                                        stdlib::secp256k1<UltraCircuitBuilder>::fq_ct,
-                                                        stdlib::secp256k1<UltraCircuitBuilder>::bigfr_ct,
-                                                        stdlib::secp256k1<UltraCircuitBuilder>::g1_bigfr_ct>)
+                  zkfocil_secp256k1,
+                  &stdlib::zkfocil::generate_zkfocil_test_circuit<UltraCircuitBuilder,
+                                                                  stdlib::secp256k1<UltraCircuitBuilder>,
+                                                                  stdlib::secp256k1<UltraCircuitBuilder>::fr,
+                                                                  stdlib::secp256k1<UltraCircuitBuilder>::g1,
+                                                                  stdlib::secp256k1<UltraCircuitBuilder>::fq_ct,
+                                                                  stdlib::secp256k1<UltraCircuitBuilder>::bigfr_ct,
+                                                                  stdlib::secp256k1<UltraCircuitBuilder>::g1_bigfr_ct>)
     ->Unit(kMillisecond)
-    ->Iterations(20);
+    ->Iterations(10);
 
 BENCHMARK_CAPTURE(generate_witness_ultrahonk,
-        zkfocil_bn254,
-        &stdlib::zkfocil::generate_zkfocil_test_circuit<UltraCircuitBuilder,
-                                                        stdlib::bn254<UltraCircuitBuilder>,
-                                                        stdlib::bn254<UltraCircuitBuilder>::ScalarFieldNative,
-                                                        stdlib::bn254<UltraCircuitBuilder>::GroupNative,
-                                                        stdlib::bn254<UltraCircuitBuilder>::fq_ct,
-                                                        stdlib::bn254<UltraCircuitBuilder>::ScalarField,
-                                                        stdlib::bn254<UltraCircuitBuilder>::Group>)
+                  zkfocil_bn254,
+                  &stdlib::zkfocil::generate_zkfocil_test_circuit<UltraCircuitBuilder,
+                                                                  stdlib::bn254<UltraCircuitBuilder>,
+                                                                  stdlib::bn254<UltraCircuitBuilder>::ScalarFieldNative,
+                                                                  stdlib::bn254<UltraCircuitBuilder>::GroupNative,
+                                                                  stdlib::bn254<UltraCircuitBuilder>::fq_ct,
+                                                                  stdlib::bn254<UltraCircuitBuilder>::ScalarField,
+                                                                  stdlib::bn254<UltraCircuitBuilder>::Group>)
     ->Unit(kMillisecond)
-    ->Iterations(20);
+    ->Iterations(10);
 
 BENCHMARK_CAPTURE(construct_proof_ultrahonk,
                   zkfocil_secp256k1,
@@ -86,7 +86,7 @@ BENCHMARK_CAPTURE(construct_proof_ultrahonk,
                                                                   stdlib::secp256k1<UltraCircuitBuilder>::bigfr_ct,
                                                                   stdlib::secp256k1<UltraCircuitBuilder>::g1_bigfr_ct>)
     ->Unit(kMillisecond)
-    ->Iterations(20);
+    ->Iterations(10);
 
 BENCHMARK_CAPTURE(construct_proof_ultrahonk,
                   zkfocil_bn254,
@@ -98,7 +98,7 @@ BENCHMARK_CAPTURE(construct_proof_ultrahonk,
                                                                   stdlib::bn254<UltraCircuitBuilder>::ScalarField,
                                                                   stdlib::bn254<UltraCircuitBuilder>::Group>)
     ->Unit(kMillisecond)
-    ->Iterations(20);
+    ->Iterations(10);
 
 BENCHMARK(construct_proof_ultrahonk_power_of_2)
     // 2**15 gates to 2**20 gates
