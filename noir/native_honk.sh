@@ -26,7 +26,7 @@ printf "Witness generated in: %.4f seconds\n" $witness_seconds
 ## Generate the proof
 echo "Generating proof..."
 prove_start=$($date_cmd +%s%N)
-bb prove -s ultra_honk -b ./target/noir.json -w ./target/noir.gz -o ./target
+bb prove -s ultra_honk -b ./target/noir.json -w ./target/witness.gz -o ./target/proof
 prove_end=$($date_cmd +%s%N)
 duration_prover=$((prove_end - prove_start))
 prover_seconds=$(echo "scale=4; $duration_prover / 1000000000" | bc -l)
@@ -37,7 +37,7 @@ total_proving_seconds=$(echo "scale=4; $duration_total_proving / 1000000000" | b
 printf "Total proving time: %.4f seconds\n" $total_proving_seconds
 
 echo "Writing verification key..."
-bb write_vk -b ./target/noir.json -o ./target
+bb write_vk -b ./target/noir.json -o ./target/vk
 
 echo "Verifying proof..."
 verify_start=$($date_cmd +%s%N)
