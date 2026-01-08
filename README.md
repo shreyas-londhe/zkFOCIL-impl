@@ -69,20 +69,20 @@ Installing barretenberg and running the benchmarks requires a few steps. It is r
 
 Machine 1: 2x AMD EPYC 7R13 (48C/96T each, 192 logical CPUs total)
 
-| Stage                   | bn254-kzg | secp256k1-kzg | bn254-ipa | secp256k1-ipa |
-| ----------------------- | --------- | ------------- | --------- | ------------- |
-| Num of gates            | 111227    | 110946        | 111227    | 110946        |
-| Witness Generation (ms) | 835       | 844           | 800       | 818           |
-| Proof Generation (ms)   | 387       | 384           | 1596      | 1663          |
-| Verification (ms)       | 8.839     | 9.771         | 48.3      | 45.9          |
-| Proof size (bytes)      | 440       | 440           | 586       | 586           |
+| Stage                       | bn254-kzg | secp256k1-kzg | bn254-ipa | secp256k1-ipa |
+| --------------------------- | --------- | ------------- | --------- | ------------- |
+| Num of gates                | 111227    | 110946        | 111227    | 110946        |
+| Witness Generation (ms)     | 835       | 844           | 800       | 818           |
+| Proof Generation (ms)       | 387       | 384           | 1596      | 1663          |
+| Verification (ms)           | 8.839     | 9.771         | 48.3      | 45.9          |
+| Proof size (field elements) | 440       | 440           | 586       | 586           |
 
 Machine 2: GCP e2-standard-16 (16vCPU (8 core), 64 GB memory)
 
-| Stage                   | bn254-kzg | secp256k1-kzg | bn254-ipa | secp256k1-ipa |
-| ----------------------- | --------- | ------------- | --------- | ------------- |
-| Num of gates            | 111227    | 110946        | 111227    | 110946        |
-| Witness Generation (ms) | 822       | 847           | 823       | 838           |
-| Proof Generation (ms)   | 567       | 572           | 1582      | 1587          |
-| Verification (ms)       | 12.75     | 15.47         | 85.6      | 86.4          |
-| Proof size (bytes)      | 440       | 440           | 586       | 586           |
+| Stage                       | bn254-kzg | secp256k1-kzg | bn254-ipa | secp256k1-ipa |
+| --------------------------- | --------- | ------------- | --------- | ------------- |
+| Num of gates                | 111227    | 110946        | 111227    | 110946        |
+| Witness Generation (ms)     | 822       | 847           | 823       | 838           |
+| Proof Generation (ms)       | 567       | 572           | 1582      | 1587          |
+| Verification (ms)           | 12.75     | 15.47         | 85.6      | 86.4          |
+| Proof size (field elements) | 440       | 440           | 586       | 586           |
