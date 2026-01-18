@@ -51,7 +51,19 @@ bool_t<Builder> zkfocil_circuit(const zkfocil_inputs<Builder, Curve, Fq, Fr, G1>
     }
 
     // Check if the public key is valid
-    auto computed_public_key = G1::wnaf_batch_mul({ G1::one(builder) }, { inputs.secret_key });
+    // For BN254, use endomorphism-optimized batch mul which halves the number of scalar mul rounds
+    // by splitting the 254-bit scalar into two 128-bit scalars using the curve endomorphism
+    G1 computed_public_key;
+    if constexpr (std::is_same_v<Curve, stdlib::bn254<Builder>>) {
+        computed_public_key = G1::bn254_endo_batch_mul(
+            { G1::one(builder) }, // big_points (generator)
+            { inputs.secret_key }, // big_scalars (254-bit, will be split via endomorphism)
+            {},                    // small_points (none)
+            {},                    // small_scalars (none)
+            128);                  // max_num_small_bits (minimum required for endomorphism split)
+    } else {
+        computed_public_key = G1::wnaf_batch_mul({ G1::one(builder) }, { inputs.secret_key });
+    }
     inputs.public_key.x.assert_equal(computed_public_key.x);
     inputs.public_key.y.assert_equal(computed_public_key.y);
 
@@ -80,7 +92,18 @@ bool_t<Builder> zkfocil_circuit(const zkfocil_inputs<Builder, Curve, Fq, Fr, G1>
     Fr hash_output_field(hash_output.slice(0, 32));
 
     // Check if key image is valid
-    auto computed_key_image = G1::wnaf_batch_mul({ G1::one(builder) }, { hash_output_field });
+    // Use the same endomorphism optimization for BN254 as we did for public key
+    G1 computed_key_image;
+    if constexpr (std::is_same_v<Curve, stdlib::bn254<Builder>>) {
+        computed_key_image = G1::bn254_endo_batch_mul(
+            { G1::one(builder) },   // big_points (generator)
+            { hash_output_field },  // big_scalars (hash output, 254-bit)
+            {},                     // small_points (none)
+            {},                     // small_scalars (none)
+            128);                   // max_num_small_bits
+    } else {
+        computed_key_image = G1::wnaf_batch_mul({ G1::one(builder) }, { hash_output_field });
+    }
     inputs.key_image.x.assert_equal(computed_key_image.x);
     inputs.key_image.y.assert_equal(computed_key_image.y);
 
