@@ -80,18 +80,12 @@ void init_multi_tables()
         MultiTableId::BN254_YLO_12BIT, BasicTableId::BN254_YLO_12BIT_BASIC);
     MULTI_TABLES[MultiTableId::BN254_YHI_12BIT] = ecc_generator_tables::ecc_generator_table_12bit<bb::g1>::get_yhi_table(
         MultiTableId::BN254_YHI_12BIT, BasicTableId::BN254_YHI_12BIT_BASIC);
-    MULTI_TABLES[MultiTableId::BN254_XYPRIME_12BIT] =
-        ecc_generator_tables::ecc_generator_table_12bit<bb::g1>::get_xyprime_table(
-            MultiTableId::BN254_XYPRIME_12BIT, BasicTableId::BN254_XYPRIME_12BIT_BASIC);
     MULTI_TABLES[MultiTableId::BN254_XLO_ENDO_12BIT] =
         ecc_generator_tables::ecc_generator_table_12bit<bb::g1>::get_xlo_endo_table(
             MultiTableId::BN254_XLO_ENDO_12BIT, BasicTableId::BN254_XLO_ENDO_12BIT_BASIC);
     MULTI_TABLES[MultiTableId::BN254_XHI_ENDO_12BIT] =
         ecc_generator_tables::ecc_generator_table_12bit<bb::g1>::get_xhi_endo_table(
             MultiTableId::BN254_XHI_ENDO_12BIT, BasicTableId::BN254_XHI_ENDO_12BIT_BASIC);
-    MULTI_TABLES[MultiTableId::BN254_XYPRIME_ENDO_12BIT] =
-        ecc_generator_tables::ecc_generator_table_12bit<bb::g1>::get_xyprime_endo_table(
-            MultiTableId::BN254_XYPRIME_ENDO_12BIT, BasicTableId::BN254_XYPRIME_ENDO_12BIT_BASIC);
     MULTI_TABLES[MultiTableId::SECP256K1_XLO] = ecc_generator_tables::ecc_generator_table<secp256k1::g1>::get_xlo_table(
         MultiTableId::SECP256K1_XLO, BasicTableId::SECP256K1_XLO_BASIC);
     MULTI_TABLES[MultiTableId::SECP256K1_XHI] = ecc_generator_tables::ecc_generator_table<secp256k1::g1>::get_xhi_table(
@@ -380,10 +374,6 @@ BasicTable create_basic_table(const BasicTableId id, const size_t index)
     case BN254_YHI_12BIT_BASIC: {
         return ecc_generator_tables::ecc_generator_table_12bit<bb::g1>::generate_yhi_table(BN254_YHI_12BIT_BASIC, index);
     }
-    case BN254_XYPRIME_12BIT_BASIC: {
-        return ecc_generator_tables::ecc_generator_table_12bit<bb::g1>::generate_xyprime_table(BN254_XYPRIME_12BIT_BASIC,
-                                                                                               index);
-    }
     case BN254_XLO_ENDO_12BIT_BASIC: {
         return ecc_generator_tables::ecc_generator_table_12bit<bb::g1>::generate_xlo_endo_table(
             BN254_XLO_ENDO_12BIT_BASIC, index);
@@ -391,10 +381,6 @@ BasicTable create_basic_table(const BasicTableId id, const size_t index)
     case BN254_XHI_ENDO_12BIT_BASIC: {
         return ecc_generator_tables::ecc_generator_table_12bit<bb::g1>::generate_xhi_endo_table(
             BN254_XHI_ENDO_12BIT_BASIC, index);
-    }
-    case BN254_XYPRIME_ENDO_12BIT_BASIC: {
-        return ecc_generator_tables::ecc_generator_table_12bit<bb::g1>::generate_xyprime_endo_table(
-            BN254_XYPRIME_ENDO_12BIT_BASIC, index);
     }
     case SECP256K1_XLO_BASIC: {
         return ecc_generator_tables::ecc_generator_table<secp256k1::g1>::generate_xlo_table(SECP256K1_XLO_BASIC, index);

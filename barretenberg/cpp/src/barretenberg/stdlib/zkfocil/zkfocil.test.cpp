@@ -86,10 +86,8 @@ TEST(stdlibZkfocil, zkfocilBn254Basic)
             case plookup::BasicTableId::BN254_XHI_12BIT_BASIC: return "BN254_XHI_12BIT";
             case plookup::BasicTableId::BN254_YLO_12BIT_BASIC: return "BN254_YLO_12BIT";
             case plookup::BasicTableId::BN254_YHI_12BIT_BASIC: return "BN254_YHI_12BIT";
-            case plookup::BasicTableId::BN254_XYPRIME_12BIT_BASIC: return "BN254_XYPRIME_12BIT";
             case plookup::BasicTableId::BN254_XLO_ENDO_12BIT_BASIC: return "BN254_XLO_ENDO_12BIT";
             case plookup::BasicTableId::BN254_XHI_ENDO_12BIT_BASIC: return "BN254_XHI_ENDO_12BIT";
-            case plookup::BasicTableId::BN254_XYPRIME_ENDO_12BIT_BASIC: return "BN254_XYPRIME_ENDO_12BIT";
             case plookup::BasicTableId::BLAKE_XOR_ROTATE0: return "BLAKE_XOR_ROTATE0";
             case plookup::BasicTableId::BLAKE_XOR_ROTATE1: return "BLAKE_XOR_ROTATE1";
             case plookup::BasicTableId::BLAKE_XOR_ROTATE2: return "BLAKE_XOR_ROTATE2";
