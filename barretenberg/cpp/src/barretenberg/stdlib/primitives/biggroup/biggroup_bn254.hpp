@@ -41,7 +41,7 @@ element<C, Fq, Fr, G> element<C, Fq, Fr, G>::bn254_fixed_base_scalar_mul(const F
     } else {
         // Split the scalar using BN254 endomorphism: k = k1 - k2 * λ
         // This converts a 254-bit scalar into two ~128-bit scalars
-        bb::fr k = scalar.get_value();
+        bb::fr k = uint256_t(scalar.get_value());
         bb::fr k1(0);
         bb::fr k2(0);
         bb::fr::split_into_endomorphism_scalars(k.from_montgomery_form(), k1, k2);

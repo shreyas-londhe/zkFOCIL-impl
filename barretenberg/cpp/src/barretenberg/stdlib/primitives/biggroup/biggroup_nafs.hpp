@@ -407,13 +407,18 @@ std::vector<field_t<C>> element<C, Fq, Fr, G>::compute_wnaf(const Fr& scalar)
     // VALIDATE SUM DOES NOT OVERFLOW P
 
     // validate correctness of wNAF
-    if constexpr (!Fr::is_composite) {
-        std::vector<Fr> accumulators;
+    // For composite fields where num_bits is small enough to fit in native field, use native field accumulation
+    // This is needed because the composite field validation logic assumes 4-bit WNAF and doesn't work with 8-bit WNAF
+    // for small scalars (e.g., 128-bit scalars used in endomorphism split)
+    constexpr bool use_native_accumulation =
+        !Fr::is_composite || (num_bits <= bb::fr::modulus.get_msb());
+    if constexpr (use_native_accumulation) {
+        std::vector<field_t<C>> accumulators;
         for (size_t i = 0; i < num_rounds; ++i) {
-            Fr entry = wnaf_entries[wnaf_entries.size() - 2 - i];
+            field_t<C> entry = wnaf_entries[wnaf_entries.size() - 2 - i];
             entry *= 2;
-            // entry -= 15;
-            entry *= static_cast<Fr>(uint256_t(1) << (i * WNAF_SIZE));
+            // entry -= (1 << WNAF_SIZE) - 1;
+            entry *= static_cast<field_t<C>>(uint256_t(1) << (i * WNAF_SIZE));
             accumulators.emplace_back(entry);
         }
         accumulators.emplace_back(wnaf_entries[wnaf_entries.size() - 1] * -1);
@@ -421,9 +426,14 @@ std::vector<field_t<C>> element<C, Fq, Fr, G>::compute_wnaf(const Fr& scalar)
         for (size_t i = 0; i < num_rounds; ++i) {
             negative_offset += uint256_t((1ULL << WNAF_SIZE) - 1) * (uint256_t(1) << (i * WNAF_SIZE));
         }
-        accumulators.emplace_back(-Fr(negative_offset));
-        Fr accumulator_result = Fr::accumulate(accumulators);
-        scalar.assert_equal(accumulator_result);
+        accumulators.emplace_back(-field_t<C>(bb::fr(negative_offset)));
+        field_t<C> accumulator_result = field_t<C>::accumulate(accumulators);
+        // For composite fields, we need to compare using the prime basis limb since scalar is a bigfield
+        if constexpr (Fr::is_composite) {
+            scalar.prime_basis_limb.assert_equal(accumulator_result);
+        } else {
+            scalar.assert_equal(accumulator_result);
+        }
     } else {
         // If Fr is a non-native field element, we can't just accumulate the wnaf entries into a single value,
         // as we could overflow the circuit modulus

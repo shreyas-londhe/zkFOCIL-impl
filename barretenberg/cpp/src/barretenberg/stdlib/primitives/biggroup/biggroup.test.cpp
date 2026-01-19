@@ -2004,7 +2004,7 @@ HEAVY_TYPED_TEST(stdlib_biggroup, mixed_mul_bn254_endo)
 
 HEAVY_TYPED_TEST(stdlib_biggroup, bn254_fixed_base_scalar_mul)
 {
-    if constexpr (TypeParam::Curve::type == CurveType::BN254 && !TypeParam::use_bigfield) {
+    if constexpr (TypeParam::Curve::type == CurveType::BN254 && TypeParam::use_bigfield) {
         if constexpr (HasGoblinBuilder<TypeParam>) {
             GTEST_SKIP();
         } else {
