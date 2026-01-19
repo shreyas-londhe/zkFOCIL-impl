@@ -1641,6 +1641,35 @@ template <typename TestType> class stdlib_biggroup : public testing::Test {
         EXPECT_CIRCUIT_CORRECTNESS(builder);
     };
 
+    /**
+     * @brief Test bn254_fixed_base_scalar_mul using 8-bit fixed-base lookup tables
+     */
+    static void test_bn254_fixed_base_scalar_mul()
+    {
+        Builder builder;
+
+        // Test with random scalar
+        fr scalar = fr::random_element();
+        scalar_ct circuit_scalar = scalar_ct::from_witness(&builder, scalar);
+
+        // Compute result using the optimized fixed-base method
+        element_ct result = element_ct::bn254_fixed_base_scalar_mul(circuit_scalar);
+
+        // Compute expected result natively: scalar * G
+        element expected = g1::one * scalar;
+        expected = expected.normalize();
+
+        // Compare results
+        fq result_x(result.x.get_value().lo);
+        fq result_y(result.y.get_value().lo);
+
+        EXPECT_EQ(result_x, expected.x);
+        EXPECT_EQ(result_y, expected.y);
+
+        // Verify circuit correctness
+        EXPECT_CIRCUIT_CORRECTNESS(builder);
+    }
+
     static void test_wnaf_secp256k1()
     {
         Builder builder = Builder();
@@ -1967,6 +1996,19 @@ HEAVY_TYPED_TEST(stdlib_biggroup, mixed_mul_bn254_endo)
             GTEST_SKIP();
         } else {
             TestFixture::test_mixed_mul_bn254_endo();
+        };
+    } else {
+        GTEST_SKIP();
+    }
+}
+
+HEAVY_TYPED_TEST(stdlib_biggroup, bn254_fixed_base_scalar_mul)
+{
+    if constexpr (TypeParam::Curve::type == CurveType::BN254 && !TypeParam::use_bigfield) {
+        if constexpr (HasGoblinBuilder<TypeParam>) {
+            GTEST_SKIP();
+        } else {
+            TestFixture::test_bn254_fixed_base_scalar_mul();
         };
     } else {
         GTEST_SKIP();

@@ -13,6 +13,99 @@
 namespace bb::stdlib::element_default {
 
 /**
+ * @brief Compute scalar * G for the BN254 generator using 8-bit fixed-base lookup tables
+ *
+ * @details This function performs fixed-base scalar multiplication with the BN254 generator point
+ * using pre-computed 8-bit Plookup tables. The algorithm:
+ * 1. Splits the 254-bit scalar into two 128-bit scalars using the curve endomorphism: k = k1 - k2 * λ
+ * 2. Computes 8-bit wNAF representation for each split scalar (16 windows + 1 skew each)
+ * 3. Uses pre-computed fixed-base tables to look up multiples of G and β*G (endomorphism point)
+ * 4. Accumulates using Horner's method: acc = ((acc * 2^8) + window_contribution) for each window
+ *
+ * The 8-bit fixed-base table stores odd multiples of G: table[i] = ((i*2) - 255) * G
+ * for i in [0, 255], giving scalar values [-255, -253, ..., -1, 1, ..., 253, 255].
+ *
+ * @param scalar The 254-bit scalar multiplier
+ * @return element The result of scalar * G
+ */
+template <class C, class Fq, class Fr, class G>
+template <typename, typename>
+    requires(IsNotMegaBuilder<C>)
+element<C, Fq, Fr, G> element<C, Fq, Fr, G>::bn254_fixed_base_scalar_mul(const Fr& scalar)
+{
+    C* ctx = scalar.get_context();
+
+    if constexpr (!HasPlookup<C>) {
+        // Fallback for non-Plookup builders: use standard batch mul with generator
+        return wnaf_batch_mul({ element::one(ctx) }, { scalar });
+    } else {
+        // Split the scalar using BN254 endomorphism: k = k1 - k2 * λ
+        // This converts a 254-bit scalar into two ~128-bit scalars
+        bb::fr k = scalar.get_value();
+        bb::fr k1(0);
+        bb::fr k2(0);
+        bb::fr::split_into_endomorphism_scalars(k.from_montgomery_form(), k1, k2);
+        Fr scalar_k1 = Fr::from_witness(ctx, k1.to_montgomery_form());
+        Fr scalar_k2 = Fr::from_witness(ctx, k2.to_montgomery_form());
+
+        // Constrain that the split is correct: scalar = k1 - k2 * λ
+        bb::fr lambda = bb::fr::cube_root_of_unity();
+        scalar.assert_equal(scalar_k1 - scalar_k2 * lambda);
+
+        // Compute 8-bit wNAF for both split scalars
+        // For 128-bit scalar with 8-bit windows: 128/8 = 16 windows + 1 skew bit = 17 entries
+        const std::vector<field_t<C>> wnaf_k1 = compute_wnaf<128, 8>(scalar_k1);
+        const std::vector<field_t<C>> wnaf_k2 = compute_wnaf<128, 8>(scalar_k2);
+
+        // Get the pre-computed 8-bit fixed-base tables for BN254 generator
+        // generator_table[i] = ((i*2) - 255) * G (odd multiples from -255G to 255G)
+        // generator_endo_table[i] = ((i*2) - 255) * endo(G) where endo(G) = (β*x, -y)
+        const auto generator_table =
+            element::eight_bit_fixed_base_table<>(element::eight_bit_fixed_base_table<>::CurveType::BN254, false);
+        const auto generator_endo_table =
+            element::eight_bit_fixed_base_table<>(element::eight_bit_fixed_base_table<>::CurveType::BN254, true);
+
+        // Number of 8-bit windows for 128-bit scalar
+        constexpr size_t num_windows = 16; // 128 / 8 = 16
+
+        // Initialize accumulator with first window contributions
+        // No offset generators needed - fixed-base points are always distinct
+        element accumulator = generator_table[wnaf_k1[0]] + generator_endo_table[wnaf_k2[0]];
+
+        // Main loop: process remaining windows using Horner's method
+        // accumulator = accumulator * 2^8 + window_contribution
+        for (size_t i = 1; i < num_windows; ++i) {
+            // Double the accumulator 8 times (multiply by 2^8 = 256)
+            for (size_t j = 0; j < 8; ++j) {
+                accumulator = accumulator.dbl();
+            }
+            // Add contributions from this window for both k1 and k2
+            accumulator = accumulator + generator_table[wnaf_k1[i]] + generator_endo_table[wnaf_k2[i]];
+        }
+
+        // Handle skew factors for wNAF representation
+        // wNAF can only represent odd numbers, so for even scalars we add 1 and set skew flag
+        // The skew is stored at index 16 (the 17th entry) in the wNAF array
+        // If skew is true, we need to subtract G (stored at generator_table[128])
+        // generator_table[128] = ((128*2) - 255) * G = (256 - 255) * G = 1 * G = G
+        {
+            element skew = accumulator - generator_table[128];
+            Fq out_x = accumulator.x.conditional_select(skew.x, bool_ct(wnaf_k1[num_windows]));
+            Fq out_y = accumulator.y.conditional_select(skew.y, bool_ct(wnaf_k1[num_windows]));
+            accumulator = element(out_x, out_y);
+        }
+        {
+            element skew = accumulator - generator_endo_table[128];
+            Fq out_x = accumulator.x.conditional_select(skew.x, bool_ct(wnaf_k2[num_windows]));
+            Fq out_y = accumulator.y.conditional_select(skew.y, bool_ct(wnaf_k2[num_windows]));
+            accumulator = element(out_x, out_y);
+        }
+
+        return accumulator;
+    }
+}
+
+/**
  * Perform a multi-scalar multiplication over the BN254 curve
  *
  * The inputs are:

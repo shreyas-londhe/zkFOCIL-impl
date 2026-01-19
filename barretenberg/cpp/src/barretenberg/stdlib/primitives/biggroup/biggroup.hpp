@@ -279,6 +279,25 @@ template <class Builder, class Fq, class Fr, class NativeGroup> class element {
                                                        const Fr& generator_scalar,
                                                        const size_t max_num_small_bits);
 
+    /**
+     * @brief Compute scalar * G for the BN254 generator using 8-bit fixed-base lookup tables
+     *
+     * @details Uses endomorphism splitting to convert 254-bit scalar into two 128-bit scalars (k1, k2),
+     * then uses pre-computed 8-bit fixed-base Plookup tables for efficient scalar multiplication.
+     * The algorithm computes k1*G + k2*endo(G) where endo(G) = (β*x, -y) is the endomorphism point.
+     *
+     * Key optimizations:
+     * - Endomorphism splitting halves the effective scalar size (254 → 128 bits)
+     * - 8-bit wNAF windows mean only 16 table lookups per split scalar
+     * - Pre-computed Plookup tables eliminate runtime point multiplications
+     *
+     * @param scalar The 254-bit scalar multiplier
+     * @return element The result of scalar * G
+     */
+    template <typename X = NativeGroup, typename = typename std::enable_if_t<std::is_same<X, bb::g1>::value>>
+        requires(IsNotMegaBuilder<Builder>)
+    static element bn254_fixed_base_scalar_mul(const Fr& scalar);
+
     template <typename X = NativeGroup, typename = typename std::enable_if_t<std::is_same<X, secp256k1::g1>::value>>
     static element secp256k1_ecdsa_mul(const element& pubkey, const Fr& u1, const Fr& u2);
 
