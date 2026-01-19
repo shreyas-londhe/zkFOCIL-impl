@@ -8,7 +8,7 @@
 #include "barretenberg/ecc/curves/bn254/fr.hpp"
 #include "barretenberg/ecc/curves/grumpkin/grumpkin.hpp"
 #include "barretenberg/stdlib/hash/blake2s/blake2s.hpp"
-#include "barretenberg/stdlib/hash/pedersen/pedersen.hpp"
+#include "barretenberg/stdlib/hash/poseidon2/poseidon2.hpp"
 #include "barretenberg/stdlib/primitives/circuit_builders/circuit_builders_fwd.hpp"
 #include "barretenberg/stdlib/primitives/curves/bn254.hpp"
 #include "barretenberg/stdlib/primitives/curves/grumpkin.hpp"
@@ -97,17 +97,23 @@ bool_t<Builder> zkfocil_circuit(const zkfocil_inputs<Builder, Curve, Fq, Fr, G1>
     inputs.key_image.x.assert_equal(computed_key_image.x);
     inputs.key_image.y.assert_equal(computed_key_image.y);
 
-    // Now check if the merkle path is valid
+    // Now check if the merkle path is valid using Poseidon2
     byte_array_ct public_key_array = inputs.public_key.to_byte_array();
     byte_array_ct public_key_hash = blake2s(public_key_array);
     field_ct leaf_value(public_key_hash.slice(0, 32));
 
-    const bool_ct exists = bb::crypto::merkle_tree::check_membership(
-        inputs.merkle_root,
-        inputs.merkle_path,
-        leaf_value,
-        inputs.index_in_merkle_tree.value.decompose_into_bits(VALIDATOR_TREE_DEPTH));
-    exists.assert_equal(true, "public key is not an active validator");
+    // Compute the merkle root using Poseidon2 hash
+    auto current = leaf_value;
+    auto index_bits = inputs.index_in_merkle_tree.value.decompose_into_bits(VALIDATOR_TREE_DEPTH);
+    for (size_t i = 0; i < inputs.merkle_path.size(); ++i) {
+        bool_ct path_bit = index_bits[i];
+        field_ct left = field_ct::conditional_assign(path_bit, inputs.merkle_path[i].first, current);
+        field_ct right = field_ct::conditional_assign(path_bit, current, inputs.merkle_path[i].second);
+        current = stdlib::poseidon2<Builder>::hash(*builder, { left, right });
+    }
+
+    // Check that computed root matches the expected root
+    current.assert_equal(inputs.merkle_root, "public key is not an active validator");
 
     return bool_t<Builder>(builder, true);
 }
@@ -116,9 +122,9 @@ template <typename Builder, typename Curve, typename NativeFr, typename NativeG1
 zkfocil_inputs<Builder, Curve, Fq, Fr, G1> construct_zkfocil_inputs(Builder& builder, size_t /*unused*/)
 {
     using bb_fr = bb::fr;
-    using MemoryTree = bb::crypto::merkle_tree::MemoryStore;
-    using PedersenHashPolicy = bb::crypto::merkle_tree::PedersenHashPolicy;
-    using MerkleTree = bb::crypto::merkle_tree::MerkleTree<MemoryTree, PedersenHashPolicy>;
+    using MemoryStore = bb::crypto::merkle_tree::MemoryStore;
+    using Poseidon2HashPolicy = bb::crypto::merkle_tree::Poseidon2HashPolicy;
+    using MerkleTree = bb::crypto::merkle_tree::MerkleTree<MemoryStore, Poseidon2HashPolicy>;
     using field_ct = stdlib::field_t<Builder>;
     using suint_ct = stdlib::safe_uint_t<Builder>;
     using witness_ct = stdlib::witness_t<Builder>;
@@ -143,7 +149,7 @@ zkfocil_inputs<Builder, Curve, Fq, Fr, G1> construct_zkfocil_inputs(Builder& bui
     // The Merkle tree is a binary tree with 2^20 leaves
     // The leaves are the (hash of) public keys of the validators
     size_t tree_depth = 20;
-    auto store = std::make_unique<MemoryTree>();
+    auto store = std::make_unique<MemoryStore>();
     auto tree = std::make_unique<MerkleTree>(*store, tree_depth);
 
     // Fill a few leaves with (random) public keys
