@@ -402,6 +402,34 @@ template <class Builder, class Fq, class Fr, class NativeGroup> class element {
         bool use_endomorphism;
     };
 
+    /**
+     * @brief 12-bit fixed-base lookup table using plookup tables
+     *
+     * @details Uses pre-computed 12-bit plookup tables for fixed-base scalar multiplication.
+     * The tables store 2^12 = 4096 precomputed multiples of the generator point.
+     * For wNAF representation with 12-bit windows:
+     * - table[i] = ((i*2) - 4095) * G for i in [0, 4095]
+     * - This gives odd multiples from -4095*G to 4095*G
+     *
+     * For use with endomorphism, the table stores multiples of endo(G) = (β*x, -y)
+     */
+    template <typename = typename std::enable_if<HasPlookup<Builder>>> struct twelve_bit_fixed_base_table {
+        enum CurveType { BN254 };
+
+        twelve_bit_fixed_base_table(const CurveType input_curve_type, bool use_endo)
+            : curve_type(input_curve_type)
+            , use_endomorphism(use_endo){};
+
+        twelve_bit_fixed_base_table(const twelve_bit_fixed_base_table& other) = default;
+        twelve_bit_fixed_base_table& operator=(const twelve_bit_fixed_base_table& other) = default;
+
+        element operator[](const field_t<Builder>& index) const;
+        element operator[](const size_t idx) const;
+
+        CurveType curve_type;
+        bool use_endomorphism;
+    };
+
     template <typename = typename std::enable_if<HasPlookup<Builder>>>
     static std::pair<four_bit_table_plookup<>, four_bit_table_plookup<>> create_endo_pair_four_bit_table_plookup(
         const element& input)

@@ -178,6 +178,65 @@ element<C, Fq, Fr, G> element<C, Fq, Fr, G>::eight_bit_fixed_base_table<X>::oper
 }
 
 /**
+ * @brief 12-bit fixed-base plookup table operator[]
+ *
+ * @details Uses pre-computed 12-bit plookup tables to look up generator multiples.
+ * The plookup tables store 4096 entries with odd scalar multiples.
+ */
+template <class C, class Fq, class Fr, class G>
+template <typename X>
+element<C, Fq, Fr, G> element<C, Fq, Fr, G>::twelve_bit_fixed_base_table<X>::operator[](const field_t<C>& index) const
+{
+    const auto get_plookup_tags = [this]() {
+        switch (curve_type) {
+        case CurveType::BN254: {
+            return std::array<MultiTableId, 5>{
+                use_endomorphism ? MultiTableId::BN254_XLO_ENDO_12BIT : MultiTableId::BN254_XLO_12BIT,
+                use_endomorphism ? MultiTableId::BN254_XHI_ENDO_12BIT : MultiTableId::BN254_XHI_12BIT,
+                MultiTableId::BN254_YLO_12BIT,
+                MultiTableId::BN254_YHI_12BIT,
+                use_endomorphism ? MultiTableId::BN254_XYPRIME_ENDO_12BIT : MultiTableId::BN254_XYPRIME_12BIT,
+            };
+        }
+        default: {
+            return std::array<MultiTableId, 5>{
+                use_endomorphism ? MultiTableId::BN254_XLO_ENDO_12BIT : MultiTableId::BN254_XLO_12BIT,
+                use_endomorphism ? MultiTableId::BN254_XHI_ENDO_12BIT : MultiTableId::BN254_XHI_12BIT,
+                MultiTableId::BN254_YLO_12BIT,
+                MultiTableId::BN254_YHI_12BIT,
+                use_endomorphism ? MultiTableId::BN254_XYPRIME_ENDO_12BIT : MultiTableId::BN254_XYPRIME_12BIT,
+            };
+        }
+        }
+    };
+
+    const auto tags = get_plookup_tags();
+
+    const auto xlo = plookup_read<C>::read_pair_from_table(tags[0], index);
+    const auto xhi = plookup_read<C>::read_pair_from_table(tags[1], index);
+    const auto ylo = plookup_read<C>::read_pair_from_table(tags[2], index);
+    const auto yhi = plookup_read<C>::read_pair_from_table(tags[3], index);
+    const auto xyprime = plookup_read<C>::read_pair_from_table(tags[4], index);
+
+    // All the elements are precomputed constants so they are completely reduced
+    Fq x = Fq::unsafe_construct_from_limbs(xlo.first, xlo.second, xhi.first, xhi.second, xyprime.first);
+    Fq y = Fq::unsafe_construct_from_limbs(ylo.first, ylo.second, yhi.first, yhi.second, xyprime.second);
+
+    if (use_endomorphism) {
+        y = -y;
+    }
+
+    return element(x, y);
+}
+
+template <typename C, class Fq, class Fr, class G>
+template <typename X>
+element<C, Fq, Fr, G> element<C, Fq, Fr, G>::twelve_bit_fixed_base_table<X>::operator[](const size_t index) const
+{
+    return operator[](field_t<C>(index));
+}
+
+/**
  * lookup_table_plookup
  **/
 template <typename C, class Fq, class Fr, class G>
