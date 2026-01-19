@@ -178,37 +178,24 @@ element<C, Fq, Fr, G> element<C, Fq, Fr, G>::eight_bit_fixed_base_table<X>::oper
 }
 
 /**
- * @brief 12-bit fixed-base plookup table operator[]
+ * @brief 13-bit fixed-base plookup table operator[]
  *
- * @details Uses pre-computed 12-bit plookup tables to look up generator multiples.
- * The plookup tables store 4096 entries with odd scalar multiples.
+ * @details Uses pre-computed 13-bit plookup tables to look up generator multiples.
+ * The plookup tables store 8192 entries with odd scalar multiples.
+ * When use_endomorphism is true, uses pre-computed endo tables (with β already applied)
+ * to save gate costs compared to computing β * x at runtime.
  */
 template <class C, class Fq, class Fr, class G>
 template <typename X>
-element<C, Fq, Fr, G> element<C, Fq, Fr, G>::twelve_bit_fixed_base_table<X>::operator[](const field_t<C>& index) const
+element<C, Fq, Fr, G> element<C, Fq, Fr, G>::thirteen_bit_fixed_base_table<X>::operator[](const field_t<C>& index) const
 {
-    const auto get_plookup_tags = [this]() {
-        switch (curve_type) {
-        case CurveType::BN254: {
-            return std::array<MultiTableId, 4>{
-                use_endomorphism ? MultiTableId::BN254_XLO_ENDO_12BIT : MultiTableId::BN254_XLO_12BIT,
-                use_endomorphism ? MultiTableId::BN254_XHI_ENDO_12BIT : MultiTableId::BN254_XHI_12BIT,
-                MultiTableId::BN254_YLO_12BIT,
-                MultiTableId::BN254_YHI_12BIT,
-            };
-        }
-        default: {
-            return std::array<MultiTableId, 4>{
-                use_endomorphism ? MultiTableId::BN254_XLO_ENDO_12BIT : MultiTableId::BN254_XLO_12BIT,
-                use_endomorphism ? MultiTableId::BN254_XHI_ENDO_12BIT : MultiTableId::BN254_XHI_12BIT,
-                MultiTableId::BN254_YLO_12BIT,
-                MultiTableId::BN254_YHI_12BIT,
-            };
-        }
-        }
+    // Use pre-computed endo tables when endomorphism is enabled (saves gate costs)
+    const std::array<MultiTableId, 4> tags{
+        use_endomorphism ? MultiTableId::BN254_XLO_13BIT_ENDO : MultiTableId::BN254_XLO_13BIT,
+        use_endomorphism ? MultiTableId::BN254_XHI_13BIT_ENDO : MultiTableId::BN254_XHI_13BIT,
+        MultiTableId::BN254_YLO_13BIT,
+        MultiTableId::BN254_YHI_13BIT,
     };
-
-    const auto tags = get_plookup_tags();
 
     const auto xlo = plookup_read<C>::read_pair_from_table(tags[0], index);
     const auto xhi = plookup_read<C>::read_pair_from_table(tags[1], index);
@@ -219,6 +206,7 @@ element<C, Fq, Fr, G> element<C, Fq, Fr, G>::twelve_bit_fixed_base_table<X>::ope
     Fq x = Fq::unsafe_construct_from_limbs(xlo.first, xlo.second, xhi.first, xhi.second);
     Fq y = Fq::unsafe_construct_from_limbs(ylo.first, ylo.second, yhi.first, yhi.second);
 
+    // Negate y for endomorphism (endo point is (β*x, -y))
     if (use_endomorphism) {
         y = -y;
     }
@@ -228,7 +216,7 @@ element<C, Fq, Fr, G> element<C, Fq, Fr, G>::twelve_bit_fixed_base_table<X>::ope
 
 template <typename C, class Fq, class Fr, class G>
 template <typename X>
-element<C, Fq, Fr, G> element<C, Fq, Fr, G>::twelve_bit_fixed_base_table<X>::operator[](const size_t index) const
+element<C, Fq, Fr, G> element<C, Fq, Fr, G>::thirteen_bit_fixed_base_table<X>::operator[](const size_t index) const
 {
     return operator[](field_t<C>(index));
 }

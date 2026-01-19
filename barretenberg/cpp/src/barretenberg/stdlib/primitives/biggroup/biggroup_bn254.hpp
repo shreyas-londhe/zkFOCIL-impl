@@ -13,21 +13,21 @@
 namespace bb::stdlib::element_default {
 
 /**
- * @brief Compute scalar * G for the BN254 generator using 12-bit fixed-base lookup tables
+ * @brief Compute scalar * G for the BN254 generator using 13-bit fixed-base lookup tables
  *
  * @details This function performs fixed-base scalar multiplication with the BN254 generator point
- * using pre-computed 12-bit Plookup tables. The algorithm:
+ * using pre-computed 13-bit Plookup tables. The algorithm:
  * 1. Splits the 254-bit scalar into two 128-bit scalars using the curve endomorphism: k = k1 - k2 * λ
- * 2. Computes 12-bit wNAF representation for each split scalar (10 12-bit windows + 1 8-bit window + 1 skew)
+ * 2. Computes 13-bit wNAF representation for each split scalar (9 13-bit windows + 1 11-bit window + 1 skew)
  * 3. Uses pre-computed fixed-base tables to look up multiples of G and β*G (endomorphism point)
  * 4. Accumulates using Horner's method: acc = ((acc * 2^w) + window_contribution) for each window
  *
- * The 12-bit fixed-base table stores odd multiples of G: table[i] = ((i*2) - 4095) * G
- * for i in [0, 4095], giving scalar values [-4095, -4093, ..., -1, 1, ..., 4093, 4095].
+ * The 13-bit fixed-base table stores odd multiples of G: table[i] = ((i*2) - 8191) * G
+ * for i in [0, 8191], giving scalar values [-8191, -8189, ..., -1, 1, ..., 8189, 8191].
  *
- * Scalar decomposition: 128 bits = 8 bits (MSB) + 10 × 12 bits = 8 + 120 bits
- * - First process the 8-bit MSB window
- * - Then process 10 12-bit windows
+ * Scalar decomposition: 128 bits = 11 bits (MSB) + 9 × 13 bits = 11 + 117 bits
+ * - First process the 11-bit MSB window
+ * - Then process 9 13-bit windows
  *
  * @param scalar The 254-bit scalar multiplier
  * @return element The result of scalar * G
@@ -56,50 +56,50 @@ element<C, Fq, Fr, G> element<C, Fq, Fr, G>::bn254_fixed_base_scalar_mul(const F
         bb::fr lambda = bb::fr::cube_root_of_unity();
         scalar.assert_equal(scalar_k1 - scalar_k2 * lambda);
 
-        // Decompose 128-bit scalars: 128 = 8 (MSB) + 10 × 12 bits
+        // Decompose 128-bit scalars: 128 = 11 (MSB) + 9 × 13 bits
         // We need to compute wNAF entries for this decomposition
-        // First extract the 8-bit MSB and 120-bit LSB parts
+        // First extract the 11-bit MSB and 117-bit LSB parts
 
-        // Compute 8-bit wNAF for the high 8 bits (using existing 8-bit infrastructure)
-        // and 12-bit wNAF for the low 120 bits
+        // Compute 11-bit wNAF for the high 11 bits (using existing infrastructure)
+        // and 13-bit wNAF for the low 117 bits
 
         // For simplicity, we use a hybrid approach:
-        // - 10 windows of 12 bits each = 120 bits
-        // - 1 window of 8 bits = 8 bits
+        // - 9 windows of 13 bits each = 117 bits
+        // - 1 window of 11 bits = 11 bits
         // Total = 128 bits
 
         // Get wNAF representations
-        // For 12-bit: compute_wnaf<120, 12> gives 10 windows + 1 skew
-        // For 8-bit: we need to handle the top 8 bits separately
+        // For 13-bit: compute_wnaf<128, 13> gives 10 windows + 1 skew
+        // (128 / 13 = 9.846, so we have 10 windows where the last one is partial, only 11 bits)
 
-        // Actually, let's use a simpler approach: use 11 12-bit windows where the last uses only 8 bits
-        // compute_wnaf<128, 12> will give us 11 windows + skew
+        // Actually, let's use a simpler approach: use 10 13-bit windows where the last uses only 11 bits
+        // compute_wnaf<128, 13> will give us 10 windows + skew
 
-        const std::vector<field_t<C>> wnaf_k1 = compute_wnaf<128, 12>(scalar_k1);
-        const std::vector<field_t<C>> wnaf_k2 = compute_wnaf<128, 12>(scalar_k2);
+        const std::vector<field_t<C>> wnaf_k1 = compute_wnaf<128, 13>(scalar_k1);
+        const std::vector<field_t<C>> wnaf_k2 = compute_wnaf<128, 13>(scalar_k2);
 
-        // Get the pre-computed 12-bit fixed-base tables for BN254 generator
-        // generator_table[i] = ((i*2) - 4095) * G (odd multiples from -4095G to 4095G)
-        // generator_endo_table[i] = ((i*2) - 4095) * endo(G) where endo(G) = (β*x, -y)
+        // Get the pre-computed 13-bit fixed-base tables for BN254 generator
+        // generator_table[i] = ((i*2) - 8191) * G (odd multiples from -8191G to 8191G)
+        // generator_endo_table[i] = ((i*2) - 8191) * endo(G) where endo(G) = (β*x, -y)
         const auto generator_table =
-            element::twelve_bit_fixed_base_table<>(element::twelve_bit_fixed_base_table<>::CurveType::BN254, false);
+            element::thirteen_bit_fixed_base_table<>(element::thirteen_bit_fixed_base_table<>::CurveType::BN254, false);
         const auto generator_endo_table =
-            element::twelve_bit_fixed_base_table<>(element::twelve_bit_fixed_base_table<>::CurveType::BN254, true);
+            element::thirteen_bit_fixed_base_table<>(element::thirteen_bit_fixed_base_table<>::CurveType::BN254, true);
 
-        // Number of 12-bit windows for 128-bit scalar
-        // 128 / 12 = 10.67, so we have 11 windows (last one is partial, only 8 bits)
-        // But compute_wnaf handles this - it produces ceil(128/12) = 11 windows
-        constexpr size_t num_windows = (128 + 12 - 1) / 12; // = 11
+        // Number of 13-bit windows for 128-bit scalar
+        // 128 / 13 = 9.846, so we have 10 windows (last one is partial, only 11 bits)
+        // But compute_wnaf handles this - it produces ceil(128/13) = 10 windows
+        constexpr size_t num_windows = (128 + 13 - 1) / 13; // = 10
 
         // Initialize accumulator with first window contributions
         // No offset generators needed - fixed-base points are always distinct
         element accumulator = generator_table[wnaf_k1[0]] + generator_endo_table[wnaf_k2[0]];
 
         // Main loop: process remaining windows using Horner's method
-        // accumulator = accumulator * 2^12 + window_contribution
+        // accumulator = accumulator * 2^13 + window_contribution
         for (size_t i = 1; i < num_windows; ++i) {
-            // Double the accumulator 12 times (multiply by 2^12 = 4096)
-            for (size_t j = 0; j < 12; ++j) {
+            // Double the accumulator 13 times (multiply by 2^13 = 8192)
+            for (size_t j = 0; j < 13; ++j) {
                 accumulator = accumulator.dbl();
             }
             // Add contributions from this window for both k1 and k2
@@ -109,16 +109,16 @@ element<C, Fq, Fr, G> element<C, Fq, Fr, G>::bn254_fixed_base_scalar_mul(const F
         // Handle skew factors for wNAF representation
         // wNAF can only represent odd numbers, so for even scalars we add 1 and set skew flag
         // The skew is stored at index num_windows (the last entry) in the wNAF array
-        // If skew is true, we need to subtract G (stored at generator_table[2048])
-        // generator_table[2048] = ((2048*2) - 4095) * G = (4096 - 4095) * G = 1 * G = G
+        // If skew is true, we need to subtract G (stored at generator_table[4096])
+        // generator_table[4096] = ((4096*2) - 8191) * G = (8192 - 8191) * G = 1 * G = G
         {
-            element skew = accumulator - generator_table[2048];
+            element skew = accumulator - generator_table[4096];
             Fq out_x = accumulator.x.conditional_select(skew.x, bool_ct(wnaf_k1[num_windows]));
             Fq out_y = accumulator.y.conditional_select(skew.y, bool_ct(wnaf_k1[num_windows]));
             accumulator = element(out_x, out_y);
         }
         {
-            element skew = accumulator - generator_endo_table[2048];
+            element skew = accumulator - generator_endo_table[4096];
             Fq out_x = accumulator.x.conditional_select(skew.x, bool_ct(wnaf_k2[num_windows]));
             Fq out_y = accumulator.y.conditional_select(skew.y, bool_ct(wnaf_k2[num_windows]));
             accumulator = element(out_x, out_y);

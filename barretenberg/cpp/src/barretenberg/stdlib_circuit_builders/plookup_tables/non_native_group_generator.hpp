@@ -56,20 +56,20 @@ template <typename G1> class ecc_generator_table {
 };
 
 /**
- * @brief 12-bit generator lookup table for BN254
+ * @brief 13-bit generator lookup table for BN254
  *
- * @details Stores 2^12 = 4096 precomputed points for fixed-base scalar multiplication.
- * The 12-bit wNAF is structured so that entries are in the range [0, ..., 4095]
- * The actual scalar value = (wNAF * 2) - 4095
- * Scalar values are from [-4095, -4093, ..., -3, -1, 1, 3, ..., 4093, 4095]
+ * @details Stores 2^13 = 8192 precomputed points for fixed-base scalar multiplication.
+ * The 13-bit wNAF is structured so that entries are in the range [0, ..., 8191]
+ * The actual scalar value = (wNAF * 2) - 8191
+ * Scalar values are from [-8191, -8189, ..., -3, -1, 1, 3, ..., 8189, 8191]
  */
-template <typename G1> class ecc_generator_table_12bit {
+template <typename G1> class ecc_generator_table_13bit {
   public:
     typedef typename G1::element element;
-    static constexpr size_t TABLE_SIZE = 4096; // 2^12
+    static constexpr size_t TABLE_SIZE = 8192; // 2^13
 
     /**
-     * Store arrays of precomputed 12-bit lookup tables for generator point coordinates
+     * Store arrays of precomputed 13-bit lookup tables for generator point coordinates
      **/
     inline static std::array<std::pair<fr, fr>, TABLE_SIZE> generator_endo_xlo_table;
     inline static std::array<std::pair<fr, fr>, TABLE_SIZE> generator_endo_xhi_table;
