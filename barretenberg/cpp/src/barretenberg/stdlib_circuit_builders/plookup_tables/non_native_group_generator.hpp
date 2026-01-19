@@ -56,17 +56,17 @@ template <typename G1> class ecc_generator_table {
 };
 
 /**
- * @brief 13-bit generator lookup table for BN254
+ * @brief 14-bit generator lookup table for BN254
  *
- * @details Stores 2^13 = 8192 precomputed points for fixed-base scalar multiplication.
- * The 13-bit wNAF is structured so that entries are in the range [0, ..., 8191]
- * The actual scalar value = (wNAF * 2) - 8191
- * Scalar values are from [-8191, -8189, ..., -3, -1, 1, 3, ..., 8189, 8191]
+ * @details Stores 2^14 = 16384 precomputed points for fixed-base scalar multiplication.
+ * The 14-bit wNAF is structured so that entries are in the range [0, ..., 16383]
+ * The actual scalar value = (wNAF * 2) - 16383
+ * Scalar values are from [-16383, -16381, ..., -3, -1, 1, 3, ..., 16381, 16383]
  */
-template <typename G1> class ecc_generator_table_13bit {
+template <typename G1> class ecc_generator_table_14bit {
   public:
     typedef typename G1::element element;
-    static constexpr size_t TABLE_SIZE = 8192; // 2^13
+    static constexpr size_t TABLE_SIZE = 16384; // 2^14
 
     /**
      * Store arrays of precomputed 13-bit lookup tables for generator point coordinates

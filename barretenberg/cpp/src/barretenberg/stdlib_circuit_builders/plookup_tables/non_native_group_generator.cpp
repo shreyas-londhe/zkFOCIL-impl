@@ -488,11 +488,11 @@ template class ecc_generator_table<bb::g1>;
 template class ecc_generator_table<secp256k1::g1>;
 
 /**
- * 13-bit generator table implementation - OPTIMIZED 3-TABLE STRUCTURE
- * Init 13-bit generator lookup tables with 8192 entries
- * The 13-bit wNAF is structured so that entries are in the range [0, ..., 8191]
- * The actual scalar value = (wNAF * 2) - 8191
- * scalar values are from [-8191, -8189, ..., -3, -1, 1, 3, ..., 8189, 8191]
+ * 14-bit generator table implementation - OPTIMIZED 3-TABLE STRUCTURE
+ * Init 14-bit generator lookup tables with 16384 entries
+ * The 14-bit wNAF is structured so that entries are in the range [0, ..., 16383]
+ * The actual scalar value = (wNAF * 2) - 16383
+ * scalar values are from [-16383, -16381, ..., -3, -1, 1, 3, ..., 16381, 16383]
  *
  * OPTIMIZATION: Store coordinates as [low 136 bits, high 118 bits] instead of 4x 68-bit limbs
  * This reduces 6 tables to 3 tables (50% reduction):
@@ -500,7 +500,7 @@ template class ecc_generator_table<secp256k1::g1>;
  * - generator_y_table: [y_low_136bit, y_high_118bit]
  * - generator_x_endo_table: [x_endo_low_136bit, x_endo_high_118bit]
  **/
-template <typename G1> void ecc_generator_table_13bit<G1>::init_generator_tables()
+template <typename G1> void ecc_generator_table_14bit<G1>::init_generator_tables()
 {
     if (init) {
         return;
@@ -537,42 +537,42 @@ template <typename G1> void ecc_generator_table_13bit<G1>::init_generator_tables
         uint256_t y_high = y >> 136;
 
         // Store as [low 136 bits, high 118 bits]
-        ecc_generator_table_13bit<G1>::generator_x_table[i] = std::make_pair<bb::fr, bb::fr>(x_low, x_high);
-        ecc_generator_table_13bit<G1>::generator_x_endo_table[i] = std::make_pair<bb::fr, bb::fr>(endo_x_low, endo_x_high);
-        ecc_generator_table_13bit<G1>::generator_y_table[i] = std::make_pair<bb::fr, bb::fr>(y_low, y_high);
+        ecc_generator_table_14bit<G1>::generator_x_table[i] = std::make_pair<bb::fr, bb::fr>(x_low, x_high);
+        ecc_generator_table_14bit<G1>::generator_x_endo_table[i] = std::make_pair<bb::fr, bb::fr>(endo_x_low, endo_x_high);
+        ecc_generator_table_14bit<G1>::generator_y_table[i] = std::make_pair<bb::fr, bb::fr>(y_low, y_high);
     }
     init = true;
 }
 
 template <typename G1>
-std::array<bb::fr, 2> ecc_generator_table_13bit<G1>::get_x_values(const std::array<uint64_t, 2> key)
+std::array<bb::fr, 2> ecc_generator_table_14bit<G1>::get_x_values(const std::array<uint64_t, 2> key)
 {
     init_generator_tables();
     const size_t index = static_cast<size_t>(key[0]);
-    return { ecc_generator_table_13bit<G1>::generator_x_table[index].first,
-             ecc_generator_table_13bit<G1>::generator_x_table[index].second };
+    return { ecc_generator_table_14bit<G1>::generator_x_table[index].first,
+             ecc_generator_table_14bit<G1>::generator_x_table[index].second };
 }
 
 template <typename G1>
-std::array<bb::fr, 2> ecc_generator_table_13bit<G1>::get_y_values(const std::array<uint64_t, 2> key)
+std::array<bb::fr, 2> ecc_generator_table_14bit<G1>::get_y_values(const std::array<uint64_t, 2> key)
 {
     init_generator_tables();
     const size_t index = static_cast<size_t>(key[0]);
-    return { ecc_generator_table_13bit<G1>::generator_y_table[index].first,
-             ecc_generator_table_13bit<G1>::generator_y_table[index].second };
+    return { ecc_generator_table_14bit<G1>::generator_y_table[index].first,
+             ecc_generator_table_14bit<G1>::generator_y_table[index].second };
 }
 
 template <typename G1>
-std::array<bb::fr, 2> ecc_generator_table_13bit<G1>::get_x_endo_values(const std::array<uint64_t, 2> key)
+std::array<bb::fr, 2> ecc_generator_table_14bit<G1>::get_x_endo_values(const std::array<uint64_t, 2> key)
 {
     init_generator_tables();
     const size_t index = static_cast<size_t>(key[0]);
-    return { ecc_generator_table_13bit<G1>::generator_x_endo_table[index].first,
-             ecc_generator_table_13bit<G1>::generator_x_endo_table[index].second };
+    return { ecc_generator_table_14bit<G1>::generator_x_endo_table[index].first,
+             ecc_generator_table_14bit<G1>::generator_x_endo_table[index].second };
 }
 
 template <typename G1>
-BasicTable ecc_generator_table_13bit<G1>::generate_x_table(BasicTableId id, const size_t table_index)
+BasicTable ecc_generator_table_14bit<G1>::generate_x_table(BasicTableId id, const size_t table_index)
 {
     BasicTable table;
     table.id = id;
@@ -582,8 +582,8 @@ BasicTable ecc_generator_table_13bit<G1>::generate_x_table(BasicTableId id, cons
 
     for (size_t i = 0; i < table_size; ++i) {
         table.column_1.emplace_back((i));
-        table.column_2.emplace_back(ecc_generator_table_13bit<G1>::generator_x_table[i].first);
-        table.column_3.emplace_back(ecc_generator_table_13bit<G1>::generator_x_table[i].second);
+        table.column_2.emplace_back(ecc_generator_table_14bit<G1>::generator_x_table[i].first);
+        table.column_3.emplace_back(ecc_generator_table_14bit<G1>::generator_x_table[i].second);
     }
 
     table.get_values_from_key = &get_x_values;
@@ -596,7 +596,7 @@ BasicTable ecc_generator_table_13bit<G1>::generate_x_table(BasicTableId id, cons
 }
 
 template <typename G1>
-BasicTable ecc_generator_table_13bit<G1>::generate_y_table(BasicTableId id, const size_t table_index)
+BasicTable ecc_generator_table_14bit<G1>::generate_y_table(BasicTableId id, const size_t table_index)
 {
     BasicTable table;
     table.id = id;
@@ -606,8 +606,8 @@ BasicTable ecc_generator_table_13bit<G1>::generate_y_table(BasicTableId id, cons
 
     for (size_t i = 0; i < table_size; ++i) {
         table.column_1.emplace_back((i));
-        table.column_2.emplace_back(ecc_generator_table_13bit<G1>::generator_y_table[i].first);
-        table.column_3.emplace_back(ecc_generator_table_13bit<G1>::generator_y_table[i].second);
+        table.column_2.emplace_back(ecc_generator_table_14bit<G1>::generator_y_table[i].first);
+        table.column_3.emplace_back(ecc_generator_table_14bit<G1>::generator_y_table[i].second);
     }
 
     table.get_values_from_key = &get_y_values;
@@ -620,7 +620,7 @@ BasicTable ecc_generator_table_13bit<G1>::generate_y_table(BasicTableId id, cons
 }
 
 template <typename G1>
-BasicTable ecc_generator_table_13bit<G1>::generate_x_endo_table(BasicTableId id, const size_t table_index)
+BasicTable ecc_generator_table_14bit<G1>::generate_x_endo_table(BasicTableId id, const size_t table_index)
 {
     BasicTable table;
     table.id = id;
@@ -630,8 +630,8 @@ BasicTable ecc_generator_table_13bit<G1>::generate_x_endo_table(BasicTableId id,
 
     for (size_t i = 0; i < table_size; ++i) {
         table.column_1.emplace_back((i));
-        table.column_2.emplace_back(ecc_generator_table_13bit<G1>::generator_x_endo_table[i].first);
-        table.column_3.emplace_back(ecc_generator_table_13bit<G1>::generator_x_endo_table[i].second);
+        table.column_2.emplace_back(ecc_generator_table_14bit<G1>::generator_x_endo_table[i].first);
+        table.column_3.emplace_back(ecc_generator_table_14bit<G1>::generator_x_endo_table[i].second);
     }
 
     table.get_values_from_key = &get_x_endo_values;
@@ -644,7 +644,7 @@ BasicTable ecc_generator_table_13bit<G1>::generate_x_endo_table(BasicTableId id,
 }
 
 template <typename G1>
-MultiTable ecc_generator_table_13bit<G1>::get_x_table(const MultiTableId id, const BasicTableId basic_id)
+MultiTable ecc_generator_table_14bit<G1>::get_x_table(const MultiTableId id, const BasicTableId basic_id)
 {
     const size_t num_entries = 1;
     MultiTable table(TABLE_SIZE, 0, 0, 1);
@@ -659,7 +659,7 @@ MultiTable ecc_generator_table_13bit<G1>::get_x_table(const MultiTableId id, con
 }
 
 template <typename G1>
-MultiTable ecc_generator_table_13bit<G1>::get_y_table(const MultiTableId id, const BasicTableId basic_id)
+MultiTable ecc_generator_table_14bit<G1>::get_y_table(const MultiTableId id, const BasicTableId basic_id)
 {
     const size_t num_entries = 1;
     MultiTable table(TABLE_SIZE, 0, 0, 1);
@@ -674,7 +674,7 @@ MultiTable ecc_generator_table_13bit<G1>::get_y_table(const MultiTableId id, con
 }
 
 template <typename G1>
-MultiTable ecc_generator_table_13bit<G1>::get_x_endo_table(const MultiTableId id, const BasicTableId basic_id)
+MultiTable ecc_generator_table_14bit<G1>::get_x_endo_table(const MultiTableId id, const BasicTableId basic_id)
 {
     const size_t num_entries = 1;
     MultiTable table(TABLE_SIZE, 0, 0, 1);
@@ -688,5 +688,5 @@ MultiTable ecc_generator_table_13bit<G1>::get_x_endo_table(const MultiTableId id
     return table;
 }
 
-template class ecc_generator_table_13bit<bb::g1>;
+template class ecc_generator_table_14bit<bb::g1>;
 } // namespace bb::plookup::ecc_generator_tables

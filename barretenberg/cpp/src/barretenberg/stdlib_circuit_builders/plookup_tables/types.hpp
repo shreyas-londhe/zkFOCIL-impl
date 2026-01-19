@@ -42,11 +42,11 @@ enum BasicTableId {
     BN254_XLO_ENDO_BASIC,
     BN254_XHI_ENDO_BASIC,
     BN254_XYPRIME_ENDO_BASIC,
-    // 13-bit fixed-base tables (8192 entries each) - optimized 3-table structure
+    // 14-bit fixed-base tables (16384 entries each) - optimized 3-table structure
     // Each table stores [low 136 bits, high 118 bits] instead of separate low/high tables
-    BN254_X_13BIT_BASIC,           // x-coordinate: [low 136 bits, high 118 bits]
-    BN254_Y_13BIT_BASIC,           // y-coordinate: [low 136 bits, high 118 bits]
-    BN254_X_13BIT_ENDO_BASIC,      // x-endo coordinate: [low 136 bits, high 118 bits]
+    BN254_X_14BIT_BASIC,           // x-coordinate: [low 136 bits, high 118 bits]
+    BN254_Y_14BIT_BASIC,           // y-coordinate: [low 136 bits, high 118 bits]
+    BN254_X_14BIT_ENDO_BASIC,      // x-endo coordinate: [low 136 bits, high 118 bits]
     SECP256K1_XLO_BASIC,
     SECP256K1_XHI_BASIC,
     SECP256K1_YLO_BASIC,
@@ -106,10 +106,10 @@ enum MultiTableId {
     BN254_XLO_ENDO,
     BN254_XHI_ENDO,
     BN254_XYPRIME_ENDO,
-    // 13-bit fixed-base multi tables (8192 entries each) - optimized 3-table structure
-    BN254_X_13BIT,           // x-coordinate: [low 136 bits, high 118 bits]
-    BN254_Y_13BIT,           // y-coordinate: [low 136 bits, high 118 bits]
-    BN254_X_13BIT_ENDO,      // x-endo coordinate: [low 136 bits, high 118 bits]
+    // 14-bit fixed-base multi tables (16384 entries each) - optimized 3-table structure
+    BN254_X_14BIT,           // x-coordinate: [low 136 bits, high 118 bits]
+    BN254_Y_14BIT,           // y-coordinate: [low 136 bits, high 118 bits]
+    BN254_X_14BIT_ENDO,      // x-endo coordinate: [low 136 bits, high 118 bits]
     SECP256K1_XLO,
     SECP256K1_XHI,
     SECP256K1_YLO,

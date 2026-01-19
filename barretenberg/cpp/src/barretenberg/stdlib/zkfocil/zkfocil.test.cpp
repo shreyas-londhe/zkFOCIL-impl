@@ -82,9 +82,9 @@ TEST(stdlibZkfocil, zkfocilBn254Basic)
     // Helper function to get table name
     auto get_table_name = [](plookup::BasicTableId id) -> std::string {
         switch (id) {
-            case plookup::BasicTableId::BN254_X_13BIT_BASIC: return "BN254_X_13BIT";
-            case plookup::BasicTableId::BN254_Y_13BIT_BASIC: return "BN254_Y_13BIT";
-            case plookup::BasicTableId::BN254_X_13BIT_ENDO_BASIC: return "BN254_X_ENDO_13BIT";
+            case plookup::BasicTableId::BN254_X_14BIT_BASIC: return "BN254_X_14BIT";
+            case plookup::BasicTableId::BN254_Y_14BIT_BASIC: return "BN254_Y_14BIT";
+            case plookup::BasicTableId::BN254_X_14BIT_ENDO_BASIC: return "BN254_X_ENDO_14BIT";
             case plookup::BasicTableId::BLAKE_XOR_ROTATE0: return "BLAKE_XOR_ROTATE0";
             case plookup::BasicTableId::BLAKE_XOR_ROTATE1: return "BLAKE_XOR_ROTATE1";
             case plookup::BasicTableId::BLAKE_XOR_ROTATE2: return "BLAKE_XOR_ROTATE2";
