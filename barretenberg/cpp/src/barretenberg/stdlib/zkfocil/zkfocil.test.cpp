@@ -75,6 +75,47 @@ TEST(stdlibZkfocil, zkfocilBn254Basic)
 
     std::cerr << "num gates = " << builder.get_estimated_num_finalized_gates() << "\n";
 
+    // Log plookup table usage
+    std::cerr << "\n=== PLOOKUP TABLE USAGE ===" << "\n";
+    std::cerr << "Total basic lookup tables: " << builder.lookup_tables.size() << "\n";
+
+    // Helper function to get table name
+    auto get_table_name = [](plookup::BasicTableId id) -> std::string {
+        switch (id) {
+            case plookup::BasicTableId::BN254_XLO_12BIT_BASIC: return "BN254_XLO_12BIT";
+            case plookup::BasicTableId::BN254_XHI_12BIT_BASIC: return "BN254_XHI_12BIT";
+            case plookup::BasicTableId::BN254_YLO_12BIT_BASIC: return "BN254_YLO_12BIT";
+            case plookup::BasicTableId::BN254_YHI_12BIT_BASIC: return "BN254_YHI_12BIT";
+            case plookup::BasicTableId::BN254_XYPRIME_12BIT_BASIC: return "BN254_XYPRIME_12BIT";
+            case plookup::BasicTableId::BN254_XLO_ENDO_12BIT_BASIC: return "BN254_XLO_ENDO_12BIT";
+            case plookup::BasicTableId::BN254_XHI_ENDO_12BIT_BASIC: return "BN254_XHI_ENDO_12BIT";
+            case plookup::BasicTableId::BN254_XYPRIME_ENDO_12BIT_BASIC: return "BN254_XYPRIME_ENDO_12BIT";
+            case plookup::BasicTableId::BLAKE_XOR_ROTATE0: return "BLAKE_XOR_ROTATE0";
+            case plookup::BasicTableId::BLAKE_XOR_ROTATE1: return "BLAKE_XOR_ROTATE1";
+            case plookup::BasicTableId::BLAKE_XOR_ROTATE2: return "BLAKE_XOR_ROTATE2";
+            case plookup::BasicTableId::BLAKE_XOR_ROTATE4: return "BLAKE_XOR_ROTATE4";
+            case plookup::BasicTableId::BLAKE_XOR_ROTATE0_SLICE5_MOD4: return "BLAKE_XOR_ROTATE0_SLICE5_MOD4";
+            default: return "Unknown(" + std::to_string(static_cast<int>(id)) + ")";
+        }
+    };
+
+    // Count table entries by type
+    std::map<plookup::BasicTableId, size_t> table_sizes;
+    for (const auto& table : builder.lookup_tables) {
+        size_t entries = table.column_1.size();
+        table_sizes[table.id] = entries;
+        std::cerr << get_table_name(table.id) << " (ID " << static_cast<int>(table.id) << "): "
+                  << entries << " entries" << "\n";
+    }
+
+    // Calculate total size
+    size_t total_table_entries = 0;
+    for (const auto& [id, size] : table_sizes) {
+        total_table_entries += size;
+    }
+    std::cerr << "\nTotal cumulative table entries: " << total_table_entries << "\n";
+    std::cerr << "========================\n" << "\n";
+
     benchmark_info(
         Builder::NAME_STRING, "zkfocil", "Circuit", "Gate Count", builder.get_estimated_num_finalized_gates());
 }
