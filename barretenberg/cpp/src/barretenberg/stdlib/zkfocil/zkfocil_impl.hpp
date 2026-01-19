@@ -51,16 +51,11 @@ bool_t<Builder> zkfocil_circuit(const zkfocil_inputs<Builder, Curve, Fq, Fr, G1>
     }
 
     // Check if the public key is valid
-    // For BN254, use endomorphism-optimized batch mul which halves the number of scalar mul rounds
-    // by splitting the 254-bit scalar into two 128-bit scalars using the curve endomorphism
+    // For BN254, use fixed-base scalar multiplication with 12-bit plookup tables
+    // This is optimal when multiplying the generator by a scalar (uses pre-computed lookup tables)
     G1 computed_public_key;
     if constexpr (std::is_same_v<Curve, stdlib::bn254<Builder>>) {
-        computed_public_key = G1::bn254_endo_batch_mul(
-            { G1::one(builder) }, // big_points (generator)
-            { inputs.secret_key }, // big_scalars (254-bit, will be split via endomorphism)
-            {},                    // small_points (none)
-            {},                    // small_scalars (none)
-            128);                  // max_num_small_bits (minimum required for endomorphism split)
+        computed_public_key = G1::bn254_fixed_base_scalar_mul(inputs.secret_key);
     } else {
         computed_public_key = G1::wnaf_batch_mul({ G1::one(builder) }, { inputs.secret_key });
     }
@@ -92,15 +87,10 @@ bool_t<Builder> zkfocil_circuit(const zkfocil_inputs<Builder, Curve, Fq, Fr, G1>
     Fr hash_output_field(hash_output.slice(0, 32));
 
     // Check if key image is valid
-    // Use the same endomorphism optimization for BN254 as we did for public key
+    // Use fixed-base scalar multiplication with 12-bit plookup tables for BN254
     G1 computed_key_image;
     if constexpr (std::is_same_v<Curve, stdlib::bn254<Builder>>) {
-        computed_key_image = G1::bn254_endo_batch_mul(
-            { G1::one(builder) },   // big_points (generator)
-            { hash_output_field },  // big_scalars (hash output, 254-bit)
-            {},                     // small_points (none)
-            {},                     // small_scalars (none)
-            128);                   // max_num_small_bits
+        computed_key_image = G1::bn254_fixed_base_scalar_mul(hash_output_field);
     } else {
         computed_key_image = G1::wnaf_batch_mul({ G1::one(builder) }, { hash_output_field });
     }
