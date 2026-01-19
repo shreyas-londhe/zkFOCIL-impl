@@ -71,19 +71,14 @@ void init_multi_tables()
     MULTI_TABLES[MultiTableId::BN254_XYPRIME_ENDO] =
         ecc_generator_tables::ecc_generator_table<bb::g1>::get_xyprime_endo_table(
             MultiTableId::BN254_XYPRIME_ENDO, BasicTableId::BN254_XYPRIME_ENDO_BASIC);
-    // 13-bit BN254 fixed-base tables
-    MULTI_TABLES[MultiTableId::BN254_XLO_13BIT] = ecc_generator_tables::ecc_generator_table_13bit<bb::g1>::get_xlo_table(
-        MultiTableId::BN254_XLO_13BIT, BasicTableId::BN254_XLO_13BIT_BASIC);
-    MULTI_TABLES[MultiTableId::BN254_XHI_13BIT] = ecc_generator_tables::ecc_generator_table_13bit<bb::g1>::get_xhi_table(
-        MultiTableId::BN254_XHI_13BIT, BasicTableId::BN254_XHI_13BIT_BASIC);
-    MULTI_TABLES[MultiTableId::BN254_YLO_13BIT] = ecc_generator_tables::ecc_generator_table_13bit<bb::g1>::get_ylo_table(
-        MultiTableId::BN254_YLO_13BIT, BasicTableId::BN254_YLO_13BIT_BASIC);
-    MULTI_TABLES[MultiTableId::BN254_YHI_13BIT] = ecc_generator_tables::ecc_generator_table_13bit<bb::g1>::get_yhi_table(
-        MultiTableId::BN254_YHI_13BIT, BasicTableId::BN254_YHI_13BIT_BASIC);
-    MULTI_TABLES[MultiTableId::BN254_XLO_13BIT_ENDO] = ecc_generator_tables::ecc_generator_table_13bit<bb::g1>::get_xlo_endo_table(
-        MultiTableId::BN254_XLO_13BIT_ENDO, BasicTableId::BN254_XLO_13BIT_ENDO_BASIC);
-    MULTI_TABLES[MultiTableId::BN254_XHI_13BIT_ENDO] = ecc_generator_tables::ecc_generator_table_13bit<bb::g1>::get_xhi_endo_table(
-        MultiTableId::BN254_XHI_13BIT_ENDO, BasicTableId::BN254_XHI_13BIT_ENDO_BASIC);
+    // 13-bit BN254 fixed-base tables - OPTIMIZED 3-TABLE STRUCTURE (50% size reduction)
+    // Each table stores [low 136 bits, high 118 bits] instead of separate low/high tables
+    MULTI_TABLES[MultiTableId::BN254_X_13BIT] = ecc_generator_tables::ecc_generator_table_13bit<bb::g1>::get_x_table(
+        MultiTableId::BN254_X_13BIT, BasicTableId::BN254_X_13BIT_BASIC);
+    MULTI_TABLES[MultiTableId::BN254_Y_13BIT] = ecc_generator_tables::ecc_generator_table_13bit<bb::g1>::get_y_table(
+        MultiTableId::BN254_Y_13BIT, BasicTableId::BN254_Y_13BIT_BASIC);
+    MULTI_TABLES[MultiTableId::BN254_X_13BIT_ENDO] = ecc_generator_tables::ecc_generator_table_13bit<bb::g1>::get_x_endo_table(
+        MultiTableId::BN254_X_13BIT_ENDO, BasicTableId::BN254_X_13BIT_ENDO_BASIC);
     MULTI_TABLES[MultiTableId::SECP256K1_XLO] = ecc_generator_tables::ecc_generator_table<secp256k1::g1>::get_xlo_table(
         MultiTableId::SECP256K1_XLO, BasicTableId::SECP256K1_XLO_BASIC);
     MULTI_TABLES[MultiTableId::SECP256K1_XHI] = ecc_generator_tables::ecc_generator_table<secp256k1::g1>::get_xhi_table(
@@ -359,24 +354,15 @@ BasicTable create_basic_table(const BasicTableId id, const size_t index)
         return ecc_generator_tables::ecc_generator_table<bb::g1>::generate_xyprime_endo_table(BN254_XYPRIME_ENDO_BASIC,
                                                                                               index);
     }
-    // 13-bit BN254 basic tables
-    case BN254_XLO_13BIT_BASIC: {
-        return ecc_generator_tables::ecc_generator_table_13bit<bb::g1>::generate_xlo_table(BN254_XLO_13BIT_BASIC, index);
+    // 13-bit BN254 basic tables - OPTIMIZED 3-TABLE STRUCTURE
+    case BN254_X_13BIT_BASIC: {
+        return ecc_generator_tables::ecc_generator_table_13bit<bb::g1>::generate_x_table(BN254_X_13BIT_BASIC, index);
     }
-    case BN254_XHI_13BIT_BASIC: {
-        return ecc_generator_tables::ecc_generator_table_13bit<bb::g1>::generate_xhi_table(BN254_XHI_13BIT_BASIC, index);
+    case BN254_Y_13BIT_BASIC: {
+        return ecc_generator_tables::ecc_generator_table_13bit<bb::g1>::generate_y_table(BN254_Y_13BIT_BASIC, index);
     }
-    case BN254_YLO_13BIT_BASIC: {
-        return ecc_generator_tables::ecc_generator_table_13bit<bb::g1>::generate_ylo_table(BN254_YLO_13BIT_BASIC, index);
-    }
-    case BN254_YHI_13BIT_BASIC: {
-        return ecc_generator_tables::ecc_generator_table_13bit<bb::g1>::generate_yhi_table(BN254_YHI_13BIT_BASIC, index);
-    }
-    case BN254_XLO_13BIT_ENDO_BASIC: {
-        return ecc_generator_tables::ecc_generator_table_13bit<bb::g1>::generate_xlo_endo_table(BN254_XLO_13BIT_ENDO_BASIC, index);
-    }
-    case BN254_XHI_13BIT_ENDO_BASIC: {
-        return ecc_generator_tables::ecc_generator_table_13bit<bb::g1>::generate_xhi_endo_table(BN254_XHI_13BIT_ENDO_BASIC, index);
+    case BN254_X_13BIT_ENDO_BASIC: {
+        return ecc_generator_tables::ecc_generator_table_13bit<bb::g1>::generate_x_endo_table(BN254_X_13BIT_ENDO_BASIC, index);
     }
     case SECP256K1_XLO_BASIC: {
         return ecc_generator_tables::ecc_generator_table<secp256k1::g1>::generate_xlo_table(SECP256K1_XLO_BASIC, index);

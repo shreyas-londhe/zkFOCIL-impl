@@ -70,45 +70,29 @@ template <typename G1> class ecc_generator_table_13bit {
 
     /**
      * Store arrays of precomputed 13-bit lookup tables for generator point coordinates
+     * Optimized structure: Each table stores [low 136 bits, high 118 bits]
+     * - x coordinate (normal point)
+     * - y coordinate (shared between normal and endo point)
+     * - x coordinate (endomorphism point, where x_endo = β * x)
      **/
-    inline static std::array<std::pair<fr, fr>, TABLE_SIZE> generator_endo_xlo_table;
-    inline static std::array<std::pair<fr, fr>, TABLE_SIZE> generator_endo_xhi_table;
-    inline static std::array<std::pair<fr, fr>, TABLE_SIZE> generator_xlo_table;
-    inline static std::array<std::pair<fr, fr>, TABLE_SIZE> generator_xhi_table;
-    inline static std::array<std::pair<fr, fr>, TABLE_SIZE> generator_ylo_table;
-    inline static std::array<std::pair<fr, fr>, TABLE_SIZE> generator_yhi_table;
-    inline static std::array<std::pair<fr, fr>, TABLE_SIZE> generator_xyprime_table;
-    inline static std::array<std::pair<fr, fr>, TABLE_SIZE> generator_endo_xyprime_table;
+    inline static std::array<std::pair<fr, fr>, TABLE_SIZE> generator_x_table;      // [x_low_136bit, x_high_118bit]
+    inline static std::array<std::pair<fr, fr>, TABLE_SIZE> generator_y_table;      // [y_low_136bit, y_high_118bit]
+    inline static std::array<std::pair<fr, fr>, TABLE_SIZE> generator_x_endo_table; // [x_endo_low_136bit, x_endo_high_118bit]
     inline static bool init = false;
 
     static void init_generator_tables();
 
-    static std::array<fr, 2> get_xlo_endo_values(const std::array<uint64_t, 2> key);
-    static std::array<fr, 2> get_xhi_endo_values(const std::array<uint64_t, 2> key);
-    static std::array<fr, 2> get_xlo_values(const std::array<uint64_t, 2> key);
-    static std::array<fr, 2> get_xhi_values(const std::array<uint64_t, 2> key);
-    static std::array<fr, 2> get_ylo_values(const std::array<uint64_t, 2> key);
-    static std::array<fr, 2> get_yhi_values(const std::array<uint64_t, 2> key);
-    static std::array<fr, 2> get_xyprime_values(const std::array<uint64_t, 2> key);
-    static std::array<fr, 2> get_xyprime_endo_values(const std::array<uint64_t, 2> key);
+    static std::array<fr, 2> get_x_values(const std::array<uint64_t, 2> key);
+    static std::array<fr, 2> get_y_values(const std::array<uint64_t, 2> key);
+    static std::array<fr, 2> get_x_endo_values(const std::array<uint64_t, 2> key);
 
-    static BasicTable generate_xlo_table(BasicTableId id, const size_t table_index);
-    static BasicTable generate_xhi_table(BasicTableId id, const size_t table_index);
-    static BasicTable generate_xlo_endo_table(BasicTableId id, const size_t table_index);
-    static BasicTable generate_xhi_endo_table(BasicTableId id, const size_t table_index);
-    static BasicTable generate_ylo_table(BasicTableId id, const size_t table_index);
-    static BasicTable generate_yhi_table(BasicTableId id, const size_t table_index);
-    static BasicTable generate_xyprime_table(BasicTableId id, const size_t table_index);
-    static BasicTable generate_xyprime_endo_table(BasicTableId id, const size_t table_index);
+    static BasicTable generate_x_table(BasicTableId id, const size_t table_index);
+    static BasicTable generate_y_table(BasicTableId id, const size_t table_index);
+    static BasicTable generate_x_endo_table(BasicTableId id, const size_t table_index);
 
-    static MultiTable get_xlo_table(const MultiTableId id, const BasicTableId basic_id);
-    static MultiTable get_xhi_table(const MultiTableId id, const BasicTableId basic_id);
-    static MultiTable get_xlo_endo_table(const MultiTableId id, const BasicTableId basic_id);
-    static MultiTable get_xhi_endo_table(const MultiTableId id, const BasicTableId basic_id);
-    static MultiTable get_ylo_table(const MultiTableId id, const BasicTableId basic_id);
-    static MultiTable get_yhi_table(const MultiTableId id, const BasicTableId basic_id);
-    static MultiTable get_xyprime_table(const MultiTableId id, const BasicTableId basic_id);
-    static MultiTable get_xyprime_endo_table(const MultiTableId id, const BasicTableId basic_id);
+    static MultiTable get_x_table(const MultiTableId id, const BasicTableId basic_id);
+    static MultiTable get_y_table(const MultiTableId id, const BasicTableId basic_id);
+    static MultiTable get_x_endo_table(const MultiTableId id, const BasicTableId basic_id);
 };
 
 } // namespace bb::plookup::ecc_generator_tables

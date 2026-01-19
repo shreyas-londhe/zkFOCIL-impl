@@ -178,10 +178,20 @@ element<C, Fq, Fr, G> element<C, Fq, Fr, G>::eight_bit_fixed_base_table<X>::oper
 }
 
 /**
- * @brief 13-bit fixed-base plookup table operator[]
+ * @brief 13-bit fixed-base plookup table operator[] - OPTIMIZED 3-TABLE STRUCTURE
  *
  * @details Uses pre-computed 13-bit plookup tables to look up generator multiples.
  * The plookup tables store 8192 entries with odd scalar multiples.
+ *
+ * OPTIMIZATION: Uses 3 tables instead of 6:
+ * - BN254_X_13BIT: [x_low_136bit, x_high_118bit]
+ * - BN254_Y_13BIT: [y_low_136bit, y_high_118bit]
+ * - BN254_X_13BIT_ENDO: [x_endo_low_136bit, x_endo_high_118bit]
+ *
+ * This reduces table storage by 50% (from 6 tables to 3 tables).
+ * The trade-off is that we use bigfield(low, high) constructor which adds gate cost
+ * compared to unsafe_construct_from_limbs with 4 limbs.
+ *
  * When use_endomorphism is true, uses pre-computed endo tables (with β already applied)
  * to save gate costs compared to computing β * x at runtime.
  */
@@ -189,22 +199,22 @@ template <class C, class Fq, class Fr, class G>
 template <typename X>
 element<C, Fq, Fr, G> element<C, Fq, Fr, G>::thirteen_bit_fixed_base_table<X>::operator[](const field_t<C>& index) const
 {
-    // Use pre-computed endo tables when endomorphism is enabled (saves gate costs)
-    const std::array<MultiTableId, 4> tags{
-        use_endomorphism ? MultiTableId::BN254_XLO_13BIT_ENDO : MultiTableId::BN254_XLO_13BIT,
-        use_endomorphism ? MultiTableId::BN254_XHI_13BIT_ENDO : MultiTableId::BN254_XHI_13BIT,
-        MultiTableId::BN254_YLO_13BIT,
-        MultiTableId::BN254_YHI_13BIT,
+    // Use optimized 3-table structure: x, y, x_endo
+    const std::array<MultiTableId, 3> tags{
+        use_endomorphism ? MultiTableId::BN254_X_13BIT_ENDO : MultiTableId::BN254_X_13BIT,
+        MultiTableId::BN254_Y_13BIT,
+        use_endomorphism ? MultiTableId::BN254_X_13BIT_ENDO : MultiTableId::BN254_X_13BIT,
     };
 
-    const auto xlo = plookup_read<C>::read_pair_from_table(tags[0], index);
-    const auto xhi = plookup_read<C>::read_pair_from_table(tags[1], index);
-    const auto ylo = plookup_read<C>::read_pair_from_table(tags[2], index);
-    const auto yhi = plookup_read<C>::read_pair_from_table(tags[3], index);
+    // Read x and y coordinates as [low 136 bits, high 118 bits]
+    const auto x_pair = plookup_read<C>::read_pair_from_table(tags[0], index);
+    const auto y_pair = plookup_read<C>::read_pair_from_table(tags[1], index);
 
-    // All the elements are precomputed constants so they are completely reduced
-    Fq x = Fq::unsafe_construct_from_limbs(xlo.first, xlo.second, xhi.first, xhi.second);
-    Fq y = Fq::unsafe_construct_from_limbs(ylo.first, ylo.second, yhi.first, yhi.second);
+    // Construct bigfield elements using the bigfield(low, high) constructor
+    // x_pair.first = low 136 bits, x_pair.second = high 118 bits
+    // y_pair.first = low 136 bits, y_pair.second = high 118 bits
+    Fq x(x_pair.first, x_pair.second);
+    Fq y(y_pair.first, y_pair.second);
 
     // Negate y for endomorphism (endo point is (β*x, -y))
     if (use_endomorphism) {
