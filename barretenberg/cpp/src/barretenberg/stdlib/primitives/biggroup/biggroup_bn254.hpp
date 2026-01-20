@@ -13,21 +13,19 @@
 namespace bb::stdlib::element_default {
 
 /**
- * @brief Compute scalar * G for the BN254 generator using 14-bit fixed-base lookup tables
+ * @brief Compute scalar * G for the BN254 generator using 14-bit fixed-base lookup tables with montgomery ladder
  *
  * @details This function performs fixed-base scalar multiplication with the BN254 generator point
- * using pre-computed 14-bit Plookup tables. The algorithm:
+ * using pre-computed 14-bit Plookup tables and montgomery ladder optimization. The algorithm:
  * 1. Splits the 254-bit scalar into two 128-bit scalars using the curve endomorphism: k = k1 - k2 * λ
- * 2. Computes 14-bit wNAF representation for each split scalar (9 14-bit windows + 1 2-bit window + 1 skew)
- * 3. Uses pre-computed fixed-base tables to look up multiples of G and β*G (endomorphism point)
- * 4. Accumulates using Horner's method: acc = ((acc * 2^w) + window_contribution) for each window
+ * 2. Computes 14-bit wNAF with stagger bits: k1 uses 2-bit stagger, k2 uses 3-bit stagger
+ * 3. This enables 9 14-bit windows per scalar (vs 10 without stagger): 128 = 9×14 + 2/3 stagger
+ * 4. Uses montgomery ladder pattern to interleave additions, reducing gate count
  *
- * The 14-bit fixed-base table stores odd multiples of G: table[i] = ((i*2) - 16383) * G
- * for i in [0, 16383], giving scalar values [-16383, -16381, ..., -1, 1, ..., 16381, 16383].
- *
- * Scalar decomposition: 128 bits = 2 bits (MSB) + 9 × 14 bits = 2 + 126 bits
- * - First process the 2-bit MSB window
- * - Then process 9 14-bit windows
+ * The stagger bits allow us to use the pattern:
+ *   ACC = ACC.dbl() + k1_contribution
+ *   ACC = ACC.dbl() + k2_contribution
+ * which is more efficient than: ACC = ACC.dbl(); ACC = ACC.dbl(); ACC = ACC + k1 + k2
  *
  * @param scalar The 254-bit scalar multiplier
  * @return element The result of scalar * G
@@ -43,74 +41,110 @@ element<C, Fq, Fr, G> element<C, Fq, Fr, G>::bn254_fixed_base_scalar_mul(const F
         // Fallback for non-Plookup builders: use standard batch mul with generator
         return wnaf_batch_mul({ element::one(ctx) }, { scalar });
     } else {
-        // Split the scalar using BN254 endomorphism: k = k1 - k2 * λ
-        // This converts a 254-bit scalar into two ~128-bit scalars
-        bb::fr k = uint256_t(scalar.get_value());
-        bb::fr k1(0);
-        bb::fr k2(0);
-        bb::fr::split_into_endomorphism_scalars(k.from_montgomery_form(), k1, k2);
-        Fr scalar_k1 = Fr::from_witness(ctx, k1.to_montgomery_form());
-        Fr scalar_k2 = Fr::from_witness(ctx, k2.to_montgomery_form());
-
-        // Constrain that the split is correct: scalar = k1 - k2 * λ
-        bb::fr lambda = bb::fr::cube_root_of_unity();
-        scalar.assert_equal(scalar_k1 - scalar_k2 * lambda);
-
-        // Decompose 128-bit scalars: 128 = 2 (MSB) + 9 × 14 bits
-        // We need to compute wNAF entries for this decomposition
-
-        // Get wNAF representations
-        // For 14-bit: compute_wnaf<128, 14> gives 10 windows + 1 skew
-        // (128 / 14 = 9.14, so we have 10 windows where the last one is partial, only 2 bits)
-
-        const std::vector<field_t<C>> wnaf_k1 = compute_wnaf<128, 14>(scalar_k1);
-        const std::vector<field_t<C>> wnaf_k2 = compute_wnaf<128, 14>(scalar_k2);
+        /**
+         * Scalar Decomposition and Accumulation Structure
+         * ================================================
+         *
+         * Each 128-bit scalar (k1 and k2) is decomposed into:
+         *   - 9 windows of 14 bits each (wnaf[0]..wnaf[8], from MSB to LSB)
+         *   - A stagger fragment (least significant 2 bits for k1, 3 bits for k2)
+         *
+         * Notation: Let k1[i] and k2[i] denote the i-th 14-bit window contribution (i=0 is MSB).
+         *           Let k1s and k2s denote the stagger fragment contributions.
+         *
+         * The montgomery_ladder operation computes: ladder(A, B) = 2*A + B
+         *
+         * Accumulation proceeds as follows:
+         *
+         *   1. Initialize:   ACC = 2*k1[0] + k2[0]
+         *
+         *   2. For each window i = 1..8:
+         *        ACC = 2^12 * ACC                         (12 doublings)
+         *        ACC = 2*(2*ACC + k2[i]) + k1[i]          (double montgomery ladder)
+         *
+         *   3. Final shift:  ACC = 4 * ACC                (2 doublings for stagger alignment)
+         *
+         *   4. Add staggers: ACC = ACC + k1s + k2s
+         *
+         * The double montgomery ladder in step 2 efficiently computes:
+         *   ACC' = 4*ACC + 2*k2[i] + k1[i]
+         *
+         * This interleaved pattern reduces gates compared to processing k1 and k2 separately.
+         */
+        const auto [k1_wnaf, k2_wnaf] = compute_bn254_endo_wnaf<14, 2, 3>(scalar);
 
         // Get the pre-computed 14-bit fixed-base tables for BN254 generator
-        // generator_table[i] = ((i*2) - 16383) * G (odd multiples from -16383G to 16383G)
-        // generator_endo_table[i] = ((i*2) - 16383) * endo(G) where endo(G) = (β*x, -y)
-        const auto generator_table =
+        const auto P1_table =
             element::fourteen_bit_fixed_base_table<>(element::fourteen_bit_fixed_base_table<>::CurveType::BN254, false);
-        const auto generator_endo_table =
+        const auto endoP1_table =
             element::fourteen_bit_fixed_base_table<>(element::fourteen_bit_fixed_base_table<>::CurveType::BN254, true);
 
-        // Number of 14-bit windows for 128-bit scalar
-        // 128 / 14 = 9.14, so we have 10 windows (last one is partial, only 2 bits)
-        // But compute_wnaf handles this - it produces ceil(128/14) = 10 windows
-        constexpr size_t num_windows = (128 + 14 - 1) / 14; // = 10
+        // With stagger bits: 128 bits = 9 windows × 14 bits + 2/3 stagger bits
+        constexpr size_t num_windows = 9; // Reduced from 10!
 
-        // Initialize accumulator with first window contributions
-        // No offset generators needed - fixed-base points are always distinct
-        element accumulator = generator_table[wnaf_k1[0]] + generator_endo_table[wnaf_k2[0]];
+        // Initialize accumulator: start from point at infinity and add first k1 contribution
+        const auto& add_k1_msw = P1_table[k1_wnaf.wnaf[0]];
+        const auto& add_k2_msw = endoP1_table[k2_wnaf.wnaf[0]];
+        element accumulator = add_k2_msw.montgomery_ladder(add_k1_msw);
 
-        // Main loop: process remaining windows using Horner's method
-        // accumulator = accumulator * 2^14 + window_contribution
+        /**
+         * Montgomery ladder loop with staggered contributions
+         * Both k1_wnaf and k2_wnaf have 9 wnaf entries (indices 0-8)
+         * We already used wnaf[0] for initialization, so loop through wnaf[1] to wnaf[8]
+         */
         for (size_t i = 1; i < num_windows; ++i) {
-            // Double the accumulator 14 times (multiply by 2^14 = 16384)
-            for (size_t j = 0; j < 14; ++j) {
+            // Double 12 times to process next window.
+            // We need to shift by 14 bits in total: 12 bits here and then 2 bits in montgomery ladder.
+            for (size_t j = 0; j < 12; ++j) {
                 accumulator = accumulator.dbl();
             }
-            // Add contributions from this window for both k1 and k2
-            accumulator = accumulator + generator_table[wnaf_k1[i]] + generator_endo_table[wnaf_k2[i]];
+
+            // Add contributions from this window using montgomery ladder
+            const auto& add_k1 = P1_table[k1_wnaf.wnaf[i]];
+            const auto& add_k2 = endoP1_table[k2_wnaf.wnaf[i]];
+
+            accumulator = accumulator.multiple_montgomery_ladder(
+                { element::chain_add_accumulator(add_k2), element::chain_add_accumulator(add_k1) });
         }
 
-        // Handle skew factors for wNAF representation
-        // wNAF can only represent odd numbers, so for even scalars we add 1 and set skew flag
-        // The skew is stored at index num_windows (the last entry) in the wNAF array
-        // If skew is true, we need to subtract G (stored at generator_table[8192])
-        // generator_table[8192] = ((8192*2) - 16383) * G = (16384 - 16383) * G = 1 * G = G
-        {
-            element skew = accumulator - generator_table[8192];
-            Fq out_x = accumulator.x.conditional_select(skew.x, bool_ct(wnaf_k1[num_windows]));
-            Fq out_y = accumulator.y.conditional_select(skew.y, bool_ct(wnaf_k1[num_windows]));
-            accumulator = element(out_x, out_y);
-        }
-        {
-            element skew = accumulator - generator_endo_table[8192];
-            Fq out_x = accumulator.x.conditional_select(skew.x, bool_ct(wnaf_k2[num_windows]));
-            Fq out_y = accumulator.y.conditional_select(skew.y, bool_ct(wnaf_k2[num_windows]));
-            accumulator = element(out_x, out_y);
-        }
+        // Shift the accumulator by 2 bits
+        accumulator = accumulator.dbl();
+        accumulator = accumulator.dbl();
+
+        /**
+         * Add the final contributions from stagger fragments
+         * These are the least significant 2/3 bits that were removed before computing wNAF
+         */
+        const auto& add_k1_stagger = P1_table[k1_wnaf.least_significant_wnaf_fragment];
+        const auto& add_k2_stagger = endoP1_table[k2_wnaf.least_significant_wnaf_fragment];
+        accumulator = element::chain_add_end(
+            element::chain_add(add_k2_stagger, element::chain_add_start(accumulator, add_k1_stagger)));
+
+        /**
+         * Handle wNAF skew
+         * Scalars represented via the non-adjacent form can only be odd
+         * If our scalars are even, we must add or subtract the relevant base point
+         */
+        const auto conditional_add = [](const element& accumulator,
+                                        const element& base_point,
+                                        const field_t<C>& positive_skew,
+                                        const field_t<C>& negative_skew) {
+            const bool_ct positive_skew_bool(positive_skew);
+            const bool_ct negative_skew_bool(negative_skew);
+            auto to_add = base_point;
+            to_add.y = to_add.y.conditional_negate(negative_skew_bool);
+            element result = accumulator + to_add;
+
+            bool_ct skew_combined = positive_skew_bool ^ negative_skew_bool;
+            result.x = accumulator.x.conditional_select(result.x, skew_combined);
+            result.y = accumulator.y.conditional_select(result.y, skew_combined);
+            return result;
+        };
+
+        // Apply skew corrections
+        // The table at index 8192 represents 1*G (since (8192*2) - 16383 = 1)
+        accumulator = conditional_add(accumulator, P1_table[8192], k1_wnaf.positive_skew, k1_wnaf.negative_skew);
+        accumulator = conditional_add(accumulator, endoP1_table[8192], k2_wnaf.positive_skew, k2_wnaf.negative_skew);
 
         return accumulator;
     }

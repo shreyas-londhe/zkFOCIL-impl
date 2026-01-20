@@ -34,6 +34,9 @@ template <class Builder, class Fq, class Fr, class NativeGroup> class element {
         secp256k1_wnaf klo;
         secp256k1_wnaf khi;
     };
+    // Reuse secp256k1_wnaf structure for BN254
+    using bn254_wnaf = secp256k1_wnaf;
+    using bn254_wnaf_pair = secp256k1_wnaf_pair;
 
     element();
     element(const typename NativeGroup::affine_element& input);
@@ -308,6 +311,9 @@ template <class Builder, class Fq, class Fr, class NativeGroup> class element {
 
     template <size_t wnaf_size, size_t staggered_lo_offset = 0, size_t staggered_hi_offset = 0>
     static secp256k1_wnaf_pair compute_secp256k1_endo_wnaf(const Fr& scalar);
+
+    template <size_t wnaf_size, size_t lo_stagger, size_t hi_stagger>
+    static bn254_wnaf_pair compute_bn254_endo_wnaf(const Fr& scalar);
 
     Builder* get_context() const
     {
