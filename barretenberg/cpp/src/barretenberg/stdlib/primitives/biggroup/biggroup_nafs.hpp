@@ -491,13 +491,6 @@ typename element<C, Fq, Fr, G>::bn254_wnaf_pair element<C, Fq, Fr, G>::compute_b
         field_t<C> wnaf_sum = reconstruct_field_from_wnaf(
             wnaf, positive_skew, stagger_fragment, stagger, num_rounds_excluding_stagger_bits);
 
-        // Debug: print intermediate values
-        std::cerr << "  original scalar: " << k << std::endl;
-        std::cerr << "  wnaf_sum before offset: " << wnaf_sum.get_value() << std::endl;
-        std::cerr << "  positive_skew: " << positive_skew.get_value() << std::endl;
-        std::cerr << "  negative_skew: " << negative_skew.get_value() << std::endl;
-        std::cerr << "  stagger_fragment: " << stagger_fragment.get_value() << std::endl;
-
         // Compute the negative offset (sum of all (2^wnaf_size - 1) values)
         uint256_t negative_constant_wnaf_offset(0);
         for (size_t i = 0; i < num_rounds_excluding_stagger_bits; ++i) {
@@ -508,18 +501,12 @@ typename element<C, Fq, Fr, G>::bn254_wnaf_pair element<C, Fq, Fr, G>::compute_b
             negative_constant_wnaf_offset += ((1ULL << wnaf_size) - 1ULL);
         }
 
-        std::cerr << "  negative_constant_wnaf_offset: " << negative_constant_wnaf_offset << std::endl;
-
         // For native field: offset = negative_constant + negative_skew (NOT doubled!)
         // Use constant instead of witness for the offset constant
         field_t<C> offset_const = field_t<C>(ctx, bb::fr(negative_constant_wnaf_offset));
         field_t<C> offset = offset_const + negative_skew;
 
-        std::cerr << "  offset: " << offset.get_value() << std::endl;
-
         field_t<C> reconstructed = wnaf_sum - offset;
-
-        std::cerr << "  reconstructed after subtract: " << reconstructed.get_value() << std::endl;
 
         bn254_wnaf wnaf_out{ .wnaf = wnaf,
                              .positive_skew = positive_skew,
@@ -557,21 +544,6 @@ typename element<C, Fq, Fr, G>::bn254_wnaf_pair element<C, Fq, Fr, G>::compute_b
 
     // Reconstruct: scalar = k1 - k2 * lambda (native field_t operations)
     field_t<C> reconstructed_scalar = k1_reconstructed + k2_reconstructed * minus_lambda_field;
-
-    // Debug output
-    if (scalar.get_value() != reconstructed_scalar.get_value()) {
-        std::cerr << "BN254 WNAF reconstruction mismatch!" << std::endl;
-        std::cerr << "  Input scalar: " << scalar.get_value() << std::endl;
-        std::cerr << "  Reconstructed: " << reconstructed_scalar.get_value() << std::endl;
-        std::cerr << "  k1 (native): " << k1 << std::endl;
-        std::cerr << "  k2 (native): " << k2 << std::endl;
-        std::cerr << "  k1_reconstructed: " << k1_reconstructed.get_value() << std::endl;
-        std::cerr << "  k2_reconstructed: " << k2_reconstructed.get_value() << std::endl;
-        std::cerr << "  k1_negative: " << k1_negative << std::endl;
-        std::cerr << "  k2_negative: " << k2_negative << std::endl;
-        std::cerr << "  lo_stagger: " << lo_stagger << std::endl;
-        std::cerr << "  hi_stagger: " << hi_stagger << std::endl;
-    }
 
     // Validate reconstruction
     scalar.assert_equal(reconstructed_scalar);
