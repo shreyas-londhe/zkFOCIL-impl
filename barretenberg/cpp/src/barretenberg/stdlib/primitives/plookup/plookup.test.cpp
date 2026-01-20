@@ -226,7 +226,8 @@ TEST(stdlib_plookup, blake2s_xor_rotate_16)
 {
     Builder builder = Builder();
 
-    const size_t num_lookups = 6;
+    // 5-bit slices: 7 slices total (6 slices of 5 bits + 1 last slice of 5 bits for 2-bit value + 3-bit overflow)
+    const size_t num_lookups = 7;
 
     uint256_t left_value = (engine.get_random_uint256() & 0xffffffffULL);
     uint256_t right_value = (engine.get_random_uint256() & 0xffffffffULL);
@@ -236,18 +237,19 @@ TEST(stdlib_plookup, blake2s_xor_rotate_16)
 
     const auto lookup = plookup_read::get_lookup_accumulators(MultiTableId::BLAKE_XOR_ROTATE_16, left, right, true);
 
-    const auto left_slices = numeric::slice_input(left_value, 1 << 6, num_lookups);
-    const auto right_slices = numeric::slice_input(right_value, 1 << 6, num_lookups);
+    const auto left_slices = numeric::slice_input(left_value, 1 << 5, num_lookups);
+    const auto right_slices = numeric::slice_input(right_value, 1 << 5, num_lookups);
 
     std::vector<fr> out_expected(num_lookups);
     std::vector<fr> left_expected(num_lookups);
     std::vector<fr> right_expected(num_lookups);
 
+    // For 5-bit slices with ROTR^16: s3 (bits 15-19) uses ROTR1 (boundary at bit 16)
     for (size_t i = 0; i < left_slices.size(); ++i) {
-        if (i == 2) {
+        if (i == 3) {
             uint32_t a = static_cast<uint32_t>(left_slices[i]);
             uint32_t b = static_cast<uint32_t>(right_slices[i]);
-            uint32_t c = numeric::rotate32(a ^ b, 4);
+            uint32_t c = numeric::rotate32(a ^ b, 1);
             out_expected[i] = uint256_t(c);
         } else {
             out_expected[i] = uint256_t(left_slices[i]) ^ uint256_t(right_slices[i]);
@@ -257,17 +259,20 @@ TEST(stdlib_plookup, blake2s_xor_rotate_16)
     }
 
     /*
-     * The following out coefficients are the ones multiplied for computing the cumulative intermediate terms
-     * in the expected output. If the column_3_coefficients for this table are (a0, a1, ..., a5), then the
-     * out_coefficients must be (a5/a4, a4/a3, a3/a2, a2/a1, a1/a0). Note that these are stored in reverse orde
-     * for simplicity.
+     * For 5-bit slices, column_3_coefficients are: 1, 2^5, 2^10, 2^(-16), 2^(-12), 2^(-7), 2^(-2)
+     * out_coefficients[i] = c[i+1]/c[i] for accumulator computation
      */
-    std::vector<fr> out_coefficients{ (1 << 6), (bb::fr(1) / bb::fr(1 << 22)), (1 << 2), (1 << 6), (1 << 6) };
+    std::vector<fr> out_coefficients{ (1 << 5),
+                                      (1 << 5),
+                                      (bb::fr(1) / bb::fr(1 << 26)),
+                                      (1 << 4),
+                                      (1 << 5),
+                                      (1 << 5) };
 
     for (size_t i = num_lookups - 2; i < num_lookups; --i) {
         out_expected[i] += out_expected[i + 1] * out_coefficients[i];
-        left_expected[i] += left_expected[i + 1] * (1 << 6);
-        right_expected[i] += right_expected[i + 1] * (1 << 6);
+        left_expected[i] += left_expected[i + 1] * (1 << 5);
+        right_expected[i] += right_expected[i + 1] * (1 << 5);
     }
 
     for (size_t i = 0; i < num_lookups; ++i) {
@@ -277,9 +282,7 @@ TEST(stdlib_plookup, blake2s_xor_rotate_16)
     }
 
     /*
-     * Note that we multiply the output of the lookup table (lookup[Column::Idx}0]) by 2^{16} because
-     * while defining the table we had set the coefficient of s0 to 1, so to correct that, we need to multiply by a
-     * constant.
+     * Multiply output by 2^16 to get the final ROTR^16(a ^ b) result.
      */
     auto mul_constant = fr(1 << 16);
     fr lookup_output = lookup[ColumnIdx::C3][0].get_value() * mul_constant;
@@ -295,7 +298,8 @@ TEST(stdlib_plookup, blake2s_xor_rotate_8)
 {
     Builder builder = Builder();
 
-    const size_t num_lookups = 6;
+    // 5-bit slices: 7 slices total
+    const size_t num_lookups = 7;
 
     uint256_t left_value = (engine.get_random_uint256() & 0xffffffffULL);
     uint256_t right_value = (engine.get_random_uint256() & 0xffffffffULL);
@@ -305,18 +309,19 @@ TEST(stdlib_plookup, blake2s_xor_rotate_8)
 
     const auto lookup = plookup_read::get_lookup_accumulators(MultiTableId::BLAKE_XOR_ROTATE_8, left, right, true);
 
-    const auto left_slices = numeric::slice_input(left_value, 1 << 6, num_lookups);
-    const auto right_slices = numeric::slice_input(right_value, 1 << 6, num_lookups);
+    const auto left_slices = numeric::slice_input(left_value, 1 << 5, num_lookups);
+    const auto right_slices = numeric::slice_input(right_value, 1 << 5, num_lookups);
 
     std::vector<fr> out_expected(num_lookups);
     std::vector<fr> left_expected(num_lookups);
     std::vector<fr> right_expected(num_lookups);
 
+    // For 5-bit slices with ROTR^8: s1 (bits 5-9) uses ROTR3 (boundary at bit 8, 3 bits into s1)
     for (size_t i = 0; i < left_slices.size(); ++i) {
         if (i == 1) {
             uint32_t a = static_cast<uint32_t>(left_slices[i]);
             uint32_t b = static_cast<uint32_t>(right_slices[i]);
-            uint32_t c = numeric::rotate32(a ^ b, 2);
+            uint32_t c = numeric::rotate32(a ^ b, 3);
             out_expected[i] = uint256_t(c);
         } else {
             out_expected[i] = uint256_t(left_slices[i]) ^ uint256_t(right_slices[i]);
@@ -326,12 +331,16 @@ TEST(stdlib_plookup, blake2s_xor_rotate_8)
     }
 
     auto mul_constant = fr(1 << 24);
-    std::vector<fr> out_coefficients{ (bb::fr(1) / mul_constant), (1 << 4), (1 << 6), (1 << 6), (1 << 6) };
+    /*
+     * For 5-bit slices, column_3_coefficients are: 1, 2^(-24), 2^(-21), 2^(-16), 2^(-11), 2^(-6), 2^(-1)
+     * out_coefficients[i] = c[i+1]/c[i]
+     */
+    std::vector<fr> out_coefficients{ (bb::fr(1) / mul_constant), (1 << 3), (1 << 5), (1 << 5), (1 << 5), (1 << 5) };
 
     for (size_t i = num_lookups - 2; i < num_lookups; --i) {
         out_expected[i] += out_expected[i + 1] * out_coefficients[i];
-        left_expected[i] += left_expected[i + 1] * (1 << 6);
-        right_expected[i] += right_expected[i + 1] * (1 << 6);
+        left_expected[i] += left_expected[i + 1] * (1 << 5);
+        right_expected[i] += right_expected[i + 1] * (1 << 5);
     }
 
     for (size_t i = 0; i < num_lookups; ++i) {
@@ -353,7 +362,8 @@ TEST(stdlib_plookup, blake2s_xor_rotate_7)
 {
     Builder builder = Builder();
 
-    const size_t num_lookups = 6;
+    // 5-bit slices: 7 slices total
+    const size_t num_lookups = 7;
 
     uint256_t left_value = (engine.get_random_uint256() & 0xffffffffULL);
     uint256_t right_value = (engine.get_random_uint256() & 0xffffffffULL);
@@ -363,18 +373,19 @@ TEST(stdlib_plookup, blake2s_xor_rotate_7)
 
     const auto lookup = plookup_read::get_lookup_accumulators(MultiTableId::BLAKE_XOR_ROTATE_7, left, right, true);
 
-    const auto left_slices = numeric::slice_input(left_value, 1 << 6, num_lookups);
-    const auto right_slices = numeric::slice_input(right_value, 1 << 6, num_lookups);
+    const auto left_slices = numeric::slice_input(left_value, 1 << 5, num_lookups);
+    const auto right_slices = numeric::slice_input(right_value, 1 << 5, num_lookups);
 
     std::vector<fr> out_expected(num_lookups);
     std::vector<fr> left_expected(num_lookups);
     std::vector<fr> right_expected(num_lookups);
 
+    // For 5-bit slices with ROTR^7: s1 (bits 5-9) uses ROTR2 (boundary at bit 7, 2 bits into s1)
     for (size_t i = 0; i < left_slices.size(); ++i) {
         if (i == 1) {
             uint32_t a = static_cast<uint32_t>(left_slices[i]);
             uint32_t b = static_cast<uint32_t>(right_slices[i]);
-            uint32_t c = numeric::rotate32(a ^ b, 1);
+            uint32_t c = numeric::rotate32(a ^ b, 2);
             out_expected[i] = uint256_t(c);
         } else {
             out_expected[i] = uint256_t(left_slices[i]) ^ uint256_t(right_slices[i]);
@@ -384,12 +395,16 @@ TEST(stdlib_plookup, blake2s_xor_rotate_7)
     }
 
     auto mul_constant = fr(1 << 25);
-    std::vector<fr> out_coefficients{ (bb::fr(1) / mul_constant), (1 << 5), (1 << 6), (1 << 6), (1 << 6) };
+    /*
+     * For 5-bit slices, column_3_coefficients are: 1, 2^(-25), 2^(-23), 2^(-18), 2^(-13), 2^(-8), 2^(-3)
+     * out_coefficients[i] = c[i+1]/c[i]
+     */
+    std::vector<fr> out_coefficients{ (bb::fr(1) / mul_constant), (1 << 2), (1 << 5), (1 << 5), (1 << 5), (1 << 5) };
 
     for (size_t i = num_lookups - 2; i < num_lookups; --i) {
         out_expected[i] += out_expected[i + 1] * out_coefficients[i];
-        left_expected[i] += left_expected[i + 1] * (1 << 6);
-        right_expected[i] += right_expected[i + 1] * (1 << 6);
+        left_expected[i] += left_expected[i + 1] * (1 << 5);
+        right_expected[i] += right_expected[i + 1] * (1 << 5);
     }
 
     for (size_t i = 0; i < num_lookups; ++i) {
@@ -411,7 +426,8 @@ TEST(stdlib_plookup, blake2s_xor)
 {
     Builder builder = Builder();
 
-    const size_t num_lookups = 6;
+    // 5-bit slices: 7 slices total
+    const size_t num_lookups = 7;
 
     uint256_t left_value = (engine.get_random_uint256() & 0xffffffffULL);
     uint256_t right_value = (engine.get_random_uint256() & 0xffffffffULL);
@@ -421,8 +437,8 @@ TEST(stdlib_plookup, blake2s_xor)
 
     const auto lookup = plookup_read::get_lookup_accumulators(MultiTableId::BLAKE_XOR, left, right, true);
 
-    const auto left_slices = numeric::slice_input(left_value, 1 << 6, num_lookups);
-    const auto right_slices = numeric::slice_input(right_value, 1 << 6, num_lookups);
+    const auto left_slices = numeric::slice_input(left_value, 1 << 5, num_lookups);
+    const auto right_slices = numeric::slice_input(right_value, 1 << 5, num_lookups);
 
     std::vector<uint256_t> out_expected(num_lookups);
     std::vector<uint256_t> left_expected(num_lookups);
@@ -435,22 +451,19 @@ TEST(stdlib_plookup, blake2s_xor)
     }
 
     // Compute ror(a ^ b, 12) from lookup table.
-    // t0 = 2^30 a5 + 2^24 a4 + 2^18 a3 + 2^12 a2 + 2^6 a1 + a0
-    // t1 = 2^24 a5 + 2^18 a4 + 2^12 a3 + 2^6 a2 + a1
-    // t2 = 2^18 a5 + 2^12 a4 + 2^6 a3 + a2
-    // t3 = 2^12 a5 + 2^6 a4 + a3
-    // t4 = 2^6 a5 + a4
-    // t5 = a5
+    // For 5-bit slices:
+    // t0 = 2^30 a6 + 2^25 a5 + 2^20 a4 + 2^15 a3 + 2^10 a2 + 2^5 a1 + a0
+    // t2 = 2^20 a6 + 2^15 a5 + 2^10 a4 + 2^5 a3 + a2
     //
-    // output = (t0 - 2^12 t2) * 2^{32 - 12} + t2
+    // output = (t0 - 2^10 t2) * 2^{32 - 12} + t2
     fr lookup_output = lookup[ColumnIdx::C3][2].get_value();
-    fr t2_term = fr(1 << 12) * lookup[ColumnIdx::C3][2].get_value();
+    fr t2_term = fr(1 << 10) * lookup[ColumnIdx::C3][2].get_value();
     lookup_output += fr(1 << 20) * (lookup[ColumnIdx::C3][0].get_value() - t2_term);
 
     for (size_t i = num_lookups - 2; i < num_lookups; --i) {
-        out_expected[i] += out_expected[i + 1] * (1 << 6);
-        left_expected[i] += left_expected[i + 1] * (1 << 6);
-        right_expected[i] += right_expected[i + 1] * (1 << 6);
+        out_expected[i] += out_expected[i + 1] * (1 << 5);
+        left_expected[i] += left_expected[i + 1] * (1 << 5);
+        right_expected[i] += right_expected[i + 1] * (1 << 5);
     }
 
     //

@@ -160,11 +160,9 @@ void g_lookup(field_t<Builder> state[BLAKE3_STATE_SIZE],
     state[c] = state[c] + state[d];
 
     // b = (b ^ c).ror(12)
-    const auto lookup_2 = plookup_read<Builder>::get_lookup_accumulators(BLAKE_XOR, state[b], state[c], true);
-    field_pt lookup_output = lookup_2[ColumnIdx::C3][2];
-    field_pt t2_term = field_pt(1 << 12) * lookup_2[ColumnIdx::C3][2];
-    lookup_output += (lookup_2[ColumnIdx::C3][0] - t2_term) * field_pt(1 << 20);
-    state[b] = lookup_output;
+    const auto lookup_2 = plookup_read<Builder>::get_lookup_accumulators(BLAKE_XOR_ROTATE_12, state[b], state[c], true);
+    field_pt scaling_factor_2 = (1 << (32 - 12));
+    state[b] = lookup_2[ColumnIdx::C3][0] * scaling_factor_2;
 
     // a = a + b + y
     if (!last_update) {

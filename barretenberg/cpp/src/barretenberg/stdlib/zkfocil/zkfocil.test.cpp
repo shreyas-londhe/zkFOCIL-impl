@@ -88,7 +88,7 @@ TEST(stdlibZkfocil, zkfocilBn254Basic)
             case plookup::BasicTableId::BLAKE_XOR_ROTATE0: return "BLAKE_XOR_ROTATE0";
             case plookup::BasicTableId::BLAKE_XOR_ROTATE1: return "BLAKE_XOR_ROTATE1";
             case plookup::BasicTableId::BLAKE_XOR_ROTATE2: return "BLAKE_XOR_ROTATE2";
-            case plookup::BasicTableId::BLAKE_XOR_ROTATE4: return "BLAKE_XOR_ROTATE4";
+            case plookup::BasicTableId::BLAKE_XOR_ROTATE3: return "BLAKE_XOR_ROTATE3";
             case plookup::BasicTableId::BLAKE_XOR_ROTATE0_SLICE5_MOD4: return "BLAKE_XOR_ROTATE0_SLICE5_MOD4";
             default: return "Unknown(" + std::to_string(static_cast<int>(id)) + ")";
         }

@@ -102,6 +102,8 @@ void init_multi_tables()
     MULTI_TABLES[MultiTableId::BLAKE_XOR] = blake2s_tables::get_blake2s_xor_table(MultiTableId::BLAKE_XOR);
     MULTI_TABLES[MultiTableId::BLAKE_XOR_ROTATE_16] =
         blake2s_tables::get_blake2s_xor_rotate_16_table(MultiTableId::BLAKE_XOR_ROTATE_16);
+    MULTI_TABLES[MultiTableId::BLAKE_XOR_ROTATE_12] =
+        blake2s_tables::get_blake2s_xor_rotate_12_table(MultiTableId::BLAKE_XOR_ROTATE_12);
     MULTI_TABLES[MultiTableId::BLAKE_XOR_ROTATE_8] =
         blake2s_tables::get_blake2s_xor_rotate_8_table(MultiTableId::BLAKE_XOR_ROTATE_8);
     MULTI_TABLES[MultiTableId::BLAKE_XOR_ROTATE_7] =
@@ -393,19 +395,19 @@ BasicTable create_basic_table(const BasicTableId id, const size_t index)
             SECP256K1_XYPRIME_ENDO_BASIC, index);
     }
     case BLAKE_XOR_ROTATE0: {
-        return blake2s_tables::generate_xor_rotate_table<6, 0>(BLAKE_XOR_ROTATE0, index);
+        return blake2s_tables::generate_xor_rotate_table<5, 0>(BLAKE_XOR_ROTATE0, index);
     }
     case BLAKE_XOR_ROTATE0_SLICE5_MOD4: {
         return blake2s_tables::generate_xor_rotate_table<5, 0, true>(BLAKE_XOR_ROTATE0_SLICE5_MOD4, index);
     }
     case BLAKE_XOR_ROTATE2: {
-        return blake2s_tables::generate_xor_rotate_table<6, 2>(BLAKE_XOR_ROTATE2, index);
+        return blake2s_tables::generate_xor_rotate_table<5, 2>(BLAKE_XOR_ROTATE2, index);
     }
     case BLAKE_XOR_ROTATE1: {
-        return blake2s_tables::generate_xor_rotate_table<6, 1>(BLAKE_XOR_ROTATE1, index);
+        return blake2s_tables::generate_xor_rotate_table<5, 1>(BLAKE_XOR_ROTATE1, index);
     }
-    case BLAKE_XOR_ROTATE4: {
-        return blake2s_tables::generate_xor_rotate_table<6, 4>(BLAKE_XOR_ROTATE4, index);
+    case BLAKE_XOR_ROTATE3: {
+        return blake2s_tables::generate_xor_rotate_table<5, 3>(BLAKE_XOR_ROTATE3, index);
     }
     case HONK_DUMMY_BASIC1: {
         return dummy_tables::generate_honk_dummy_table<HONK_DUMMY_BASIC1>(HONK_DUMMY_BASIC1, index);
