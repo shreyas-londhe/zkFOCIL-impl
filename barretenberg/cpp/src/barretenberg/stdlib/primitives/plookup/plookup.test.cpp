@@ -294,6 +294,70 @@ TEST(stdlib_plookup, blake2s_xor_rotate_16)
     EXPECT_EQ(result, true);
 }
 
+TEST(stdlib_plookup, blake2s_xor_rotate_12)
+{
+    Builder builder = Builder();
+
+    // 5-bit slices: 7 slices total
+    const size_t num_lookups = 7;
+
+    uint256_t left_value = (engine.get_random_uint256() & 0xffffffffULL);
+    uint256_t right_value = (engine.get_random_uint256() & 0xffffffffULL);
+
+    field_ct left = witness_ct(&builder, bb::fr(left_value));
+    field_ct right = witness_ct(&builder, bb::fr(right_value));
+
+    const auto lookup = plookup_read::get_lookup_accumulators(MultiTableId::BLAKE_XOR_ROTATE_12, left, right, true);
+
+    const auto left_slices = numeric::slice_input(left_value, 1 << 5, num_lookups);
+    const auto right_slices = numeric::slice_input(right_value, 1 << 5, num_lookups);
+
+    std::vector<fr> out_expected(num_lookups);
+    std::vector<fr> left_expected(num_lookups);
+    std::vector<fr> right_expected(num_lookups);
+
+    // For 5-bit slices with ROTR^12: s2 (bits 10-14) uses ROTR2 (boundary at bit 12, 2 bits into s2)
+    for (size_t i = 0; i < left_slices.size(); ++i) {
+        if (i == 2) {
+            uint32_t a = static_cast<uint32_t>(left_slices[i]);
+            uint32_t b = static_cast<uint32_t>(right_slices[i]);
+            uint32_t c = numeric::rotate32(a ^ b, 2);
+            out_expected[i] = uint256_t(c);
+        } else {
+            out_expected[i] = uint256_t(left_slices[i]) ^ uint256_t(right_slices[i]);
+        }
+        left_expected[i] = left_slices[i];
+        right_expected[i] = right_slices[i];
+    }
+
+    auto mul_constant = fr(1 << 20);
+    /*
+     * For 5-bit slices, column_3_coefficients are: 1, 2^5, 2^(-20), 2^(-17), 2^(-12), 2^(-7), 2^(-2)
+     * out_coefficients[i] = c[i+1]/c[i]
+     */
+    std::vector<fr> out_coefficients{ (1 << 5), (bb::fr(1) / bb::fr(1 << 25)), (1 << 3), (1 << 5), (1 << 5), (1 << 5) };
+
+    for (size_t i = num_lookups - 2; i < num_lookups; --i) {
+        out_expected[i] += out_expected[i + 1] * out_coefficients[i];
+        left_expected[i] += left_expected[i + 1] * (1 << 5);
+        right_expected[i] += right_expected[i + 1] * (1 << 5);
+    }
+
+    for (size_t i = 0; i < num_lookups; ++i) {
+        EXPECT_EQ(lookup[ColumnIdx::C1][i].get_value(), left_expected[i]);
+        EXPECT_EQ(lookup[ColumnIdx::C2][i].get_value(), right_expected[i]);
+        EXPECT_EQ(lookup[ColumnIdx::C3][i].get_value(), out_expected[i]);
+    }
+
+    fr lookup_output = lookup[ColumnIdx::C3][0].get_value() * mul_constant;
+    uint32_t xor_rotate_output = numeric::rotate32(uint32_t(left_value) ^ uint32_t(right_value), 12);
+    EXPECT_EQ(fr(uint256_t(xor_rotate_output)), lookup_output);
+
+    bool result = CircuitChecker::check(builder);
+
+    EXPECT_EQ(result, true);
+}
+
 TEST(stdlib_plookup, blake2s_xor_rotate_8)
 {
     Builder builder = Builder();
@@ -332,10 +396,10 @@ TEST(stdlib_plookup, blake2s_xor_rotate_8)
 
     auto mul_constant = fr(1 << 24);
     /*
-     * For 5-bit slices, column_3_coefficients are: 1, 2^(-24), 2^(-21), 2^(-16), 2^(-11), 2^(-6), 2^(-1)
+     * For 5-bit slices, column_3_coefficients are: 1, 2^(-24), 2^(-22), 2^(-17), 2^(-12), 2^(-7), 2^(-2)
      * out_coefficients[i] = c[i+1]/c[i]
      */
-    std::vector<fr> out_coefficients{ (bb::fr(1) / mul_constant), (1 << 3), (1 << 5), (1 << 5), (1 << 5), (1 << 5) };
+    std::vector<fr> out_coefficients{ (bb::fr(1) / mul_constant), (1 << 2), (1 << 5), (1 << 5), (1 << 5), (1 << 5) };
 
     for (size_t i = num_lookups - 2; i < num_lookups; --i) {
         out_expected[i] += out_expected[i + 1] * out_coefficients[i];
@@ -396,10 +460,10 @@ TEST(stdlib_plookup, blake2s_xor_rotate_7)
 
     auto mul_constant = fr(1 << 25);
     /*
-     * For 5-bit slices, column_3_coefficients are: 1, 2^(-25), 2^(-23), 2^(-18), 2^(-13), 2^(-8), 2^(-3)
+     * For 5-bit slices, column_3_coefficients are: 1, 2^(-25), 2^(-22), 2^(-17), 2^(-12), 2^(-7), 2^(-2)
      * out_coefficients[i] = c[i+1]/c[i]
      */
-    std::vector<fr> out_coefficients{ (bb::fr(1) / mul_constant), (1 << 2), (1 << 5), (1 << 5), (1 << 5), (1 << 5) };
+    std::vector<fr> out_coefficients{ (bb::fr(1) / mul_constant), (1 << 3), (1 << 5), (1 << 5), (1 << 5), (1 << 5) };
 
     for (size_t i = num_lookups - 2; i < num_lookups; --i) {
         out_expected[i] += out_expected[i + 1] * out_coefficients[i];
