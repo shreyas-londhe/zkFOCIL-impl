@@ -205,14 +205,8 @@ typename element<C, Fq, Fr, G>::wnaf_pair element<C, Fq, Fr, G>::compute_endo_wn
                 if (fragment < 0) {
                     output_fragment = static_cast<uint64_t>((int)((1ULL << (wnaf_size - 1))) + (fragment / 2 - 1));
                 } else {
-                    // For composite fields (bigfield), use fragment/2 + 1; for native fields, use fragment/2
-                    if constexpr (Fr::is_composite) {
-                        output_fragment = static_cast<uint64_t>((1ULL << (wnaf_size - 1)) - 1ULL +
-                                                                (uint64_t)((uint64_t)fragment / 2 + 1));
-                    } else {
-                        output_fragment =
+                    output_fragment =
                             static_cast<uint64_t>((1ULL << (wnaf_size - 1)) + (uint64_t)((uint64_t)fragment / 2));
-                    }
                 }
 
                 return std::make_pair<uint64_t, bool>((uint64_t)output_fragment, (bool)output_skew);
@@ -236,10 +230,9 @@ typename element<C, Fq, Fr, G>::wnaf_pair element<C, Fq, Fr, G>::compute_endo_wn
                 // If the signs of current entry and the whole scalar are the same, then add the lowest bits of current
                 // wnaf value to the windows size to form an entry. Otherwise, subtract the lowest bits along with 1
                 if ((!predicate && !is_negative) || (predicate && is_negative)) {
-                    // TODO: Why is this mask fixed?
-                    offset_entry = wnaf_window_size + (wnaf_values[i] & 0xffffff);
+                    offset_entry = wnaf_window_size + (wnaf_values[i] & 0x7fffffff);
                 } else {
-                    offset_entry = wnaf_window_size - 1 - (wnaf_values[i] & 0xffffff);
+                    offset_entry = wnaf_window_size - 1 - (wnaf_values[i] & 0x7fffffff);
                 }
                 field_t<C> entry(witness_t<C>(ctx, offset_entry));
 
