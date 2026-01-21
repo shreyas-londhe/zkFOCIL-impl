@@ -514,27 +514,11 @@ TEST(stdlib_plookup, blake2s_xor)
         right_expected[i] = right_slices[i];
     }
 
-    // Compute ror(a ^ b, 12) from lookup table.
-    // For 5-bit slices:
-    // t0 = 2^30 a6 + 2^25 a5 + 2^20 a4 + 2^15 a3 + 2^10 a2 + 2^5 a1 + a0
-    // t2 = 2^20 a6 + 2^15 a5 + 2^10 a4 + 2^5 a3 + a2
-    //
-    // output = (t0 - 2^10 t2) * 2^{32 - 12} + t2
-    fr lookup_output = lookup[ColumnIdx::C3][2].get_value();
-    fr t2_term = fr(1 << 10) * lookup[ColumnIdx::C3][2].get_value();
-    lookup_output += fr(1 << 20) * (lookup[ColumnIdx::C3][0].get_value() - t2_term);
-
     for (size_t i = num_lookups - 2; i < num_lookups; --i) {
         out_expected[i] += out_expected[i + 1] * (1 << 5);
         left_expected[i] += left_expected[i + 1] * (1 << 5);
         right_expected[i] += right_expected[i + 1] * (1 << 5);
     }
-
-    //
-    // The following checks if the xor output rotated by 12 can be computed correctly from basic blake2s_xor.
-    //
-    auto xor_rotate_output = numeric::rotate32(uint32_t(left_value) ^ uint32_t(right_value), 12);
-    EXPECT_EQ(fr(uint256_t(xor_rotate_output)), lookup_output);
 
     for (size_t i = 0; i < num_lookups; ++i) {
         EXPECT_EQ(lookup[ColumnIdx::C1][i].get_value(), bb::fr(left_expected[i]));

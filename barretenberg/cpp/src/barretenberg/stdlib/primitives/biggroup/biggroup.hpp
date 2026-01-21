@@ -23,20 +23,25 @@ template <class Builder, class Fq, class Fr, class NativeGroup> class element {
 
     // Number of bb::fr field elements used to represent a goblin element in the public inputs
     static constexpr size_t PUBLIC_INPUTS_SIZE = Fq::PUBLIC_INPUTS_SIZE * 2;
-    struct secp256k1_wnaf {
+
+    // Unified WNAF record structure for endomorphism-based scalar multiplication
+    struct wnaf_record {
         std::vector<field_t<Builder>> wnaf;
         field_t<Builder> positive_skew;
         field_t<Builder> negative_skew;
         field_t<Builder> least_significant_wnaf_fragment;
         bool has_wnaf_fragment = false;
     };
-    struct secp256k1_wnaf_pair {
-        secp256k1_wnaf klo;
-        secp256k1_wnaf khi;
+    struct wnaf_pair {
+        wnaf_record klo;
+        wnaf_record khi;
     };
-    // Reuse secp256k1_wnaf structure for BN254
-    using bn254_wnaf = secp256k1_wnaf;
-    using bn254_wnaf_pair = secp256k1_wnaf_pair;
+
+    // Legacy aliases for backwards compatibility
+    using secp256k1_wnaf = wnaf_record;
+    using secp256k1_wnaf_pair = wnaf_pair;
+    using bn254_wnaf = wnaf_record;
+    using bn254_wnaf_pair = wnaf_pair;
 
     element();
     element(const typename NativeGroup::affine_element& input);
@@ -309,6 +314,12 @@ template <class Builder, class Fq, class Fr, class NativeGroup> class element {
     template <size_t max_num_bits = 0, size_t WNAF_SIZE = 4>
     static std::vector<field_t<Builder>> compute_wnaf(const Fr& scalar);
 
+    // Unified endomorphism WNAF computation - takes num_bits as template parameter
+    // num_bits = 129 for secp256k1 (Fr is bigfield), num_bits = 128 for BN254 (Fr is field_t)
+    template <size_t num_bits, size_t wnaf_size, size_t lo_stagger, size_t hi_stagger>
+    static wnaf_pair compute_endo_wnaf(const Fr& scalar);
+
+    // Legacy wrappers for backwards compatibility
     template <size_t wnaf_size, size_t staggered_lo_offset = 0, size_t staggered_hi_offset = 0>
     static secp256k1_wnaf_pair compute_secp256k1_endo_wnaf(const Fr& scalar);
 

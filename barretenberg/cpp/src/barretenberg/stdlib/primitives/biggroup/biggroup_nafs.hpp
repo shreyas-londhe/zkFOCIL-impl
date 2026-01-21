@@ -5,13 +5,17 @@
 namespace bb::stdlib::element_default {
 
 /**
- * Split a secp256k1 Fr element into two 129 bit scalars `klo, khi`, where `scalar = klo + \lambda * khi mod n`
- *   where `\lambda` is the cube root of unity mod n, and `n` is the secp256k1 Fr modulus
+ * Split a scalar Fr element into two scalars `klo, khi`, where `scalar = klo + \lambda * khi mod n`
+ *   where `\lambda` is the cube root of unity mod n, and `n` is the Fr modulus
  *
- * We return the wnaf representation of the two 129-bit scalars
+ * Template parameter `num_bits` specifies the bit size of the split scalars:
+ *   - 129 for secp256k1 (Fr is bigfield)
+ *   - 128 for BN254 (Fr is field_t)
+ *
+ * We return the wnaf representation of the two scalars
  *
  * The wnaf representation includes `positive_skew` and `negative_skew` components,
- * because for both `klo, khi` EITHER `k < 2^{129}` OR `-k mod n < 2^{129}`.
+ * because for both `klo, khi` EITHER `k < 2^{num_bits}` OR `-k mod n < 2^{num_bits}`.
  * If we have to negate the short scalar, the wnaf skew component flips sign.
  *
  * Outline of algorithm:
@@ -47,7 +51,7 @@ namespace bb::stdlib::element_default {
  *                      s
  *          v = 2.w - (2 - 1)
  *
- * To reconstruct the 129-bit scalar multiplier `x` from wnaf values `w` (starting with most significant slice):
+ * To reconstruct the scalar multiplier `x` from wnaf values `w` (starting with most significant slice):
  *
  *                                                        m
  *                                                       ___
@@ -56,7 +60,7 @@ namespace bb::stdlib::element_default {
  *                                                      /___  \    i            /
  *                                                       i=0
  *
- * N.B. `m` = number of rounds = (129 + s - 1) / s
+ * N.B. `m` = number of rounds = (num_bits + s - 1) / s
  *
  * We can split the RHS into positive and negative components that are strictly positive:
  *
@@ -76,7 +80,7 @@ namespace bb::stdlib::element_default {
  *
  * By independently constructing `x_pos`, `x_neg`, we ensure we never underflow the native circuit modulus
  *
- * To reconstruct our wnaf components into a scalar, we perform the following (for each 129-bit slice klo, khi):
+ * To reconstruct our wnaf components into a scalar, we perform the following (for each slice klo, khi):
  *
  *      1. Compute the wnaf entries and range constrain each entry to be < 2^s
  *      2. Construct `x_pos`
@@ -92,8 +96,8 @@ namespace bb::stdlib::element_default {
  * Finally, we return the wnaf representations of klo, khi including the skew
  **/
 template <typename C, class Fq, class Fr, class G>
-template <size_t wnaf_size, size_t lo_stagger, size_t hi_stagger>
-typename element<C, Fq, Fr, G>::secp256k1_wnaf_pair element<C, Fq, Fr, G>::compute_secp256k1_endo_wnaf(const Fr& scalar)
+template <size_t num_bits, size_t wnaf_size, size_t lo_stagger, size_t hi_stagger>
+typename element<C, Fq, Fr, G>::wnaf_pair element<C, Fq, Fr, G>::compute_endo_wnaf(const Fr& scalar)
 {
     /**
      * The staggered offset describes the number of bits we want to remove from the input scalar before computing our
@@ -123,17 +127,20 @@ typename element<C, Fq, Fr, G>::secp256k1_wnaf_pair element<C, Fq, Fr, G>::compu
      */
     C* ctx = scalar.context;
 
-    constexpr size_t num_bits = 129;
+    // Native field type for endomorphism scalar splitting
+    // For composite fields (bigfield), use the appropriate curve's native fr type
+    // For non-composite fields (field_t), use bb::fr directly
+    using native_fr = std::conditional_t<Fr::is_composite, secp256k1::fr, bb::fr>;
 
     /**
-     * @brief Compute WNAF of a single 129-bit scalar
+     * @brief Compute WNAF of a single scalar
      *
-     * @param k Scalar
+     * @param k Scalar (native field element)
      * @param stagger The number of bits that are used in "staggering"
      * @param is_negative If it should be subtracted
      * @param is_lo True if it's the low scalar
      */
-    const auto compute_single_wnaf = [ctx](const secp256k1::fr& k,
+    const auto compute_single_wnaf = [ctx](const native_fr& k,
                                            const auto stagger,
                                            const bool is_negative,
                                            const bool is_lo = false) {
@@ -162,24 +169,24 @@ typename element<C, Fq, Fr, G>::secp256k1_wnaf_pair element<C, Fq, Fr, G>::compu
         /**
          * @brief Compute the stagger-related part of WNAF and the final skew
          *
-         * @param fragment_u64 Stagger-masked lower bits of the skalar
+         * @param fragment_u64 Stagger-masked lower bits of the scalar
          * @param stagger The number of staggering bits
          * @param is_negative If the initial scalar is supposed to be subtracted
-         * @param wnaf_skew The skew of the stagger-right-shifted part of the skalar
+         * @param wnaf_skew The skew of the stagger-right-shifted part of the scalar
          *
          */
         const auto compute_staggered_wnaf_fragment =
             [](const uint64_t fragment_u64, const uint64_t stagger, bool is_negative, bool wnaf_skew) {
-                // If there is not stagger then there is no need to change anyhing
+                // If there is no stagger then there is no need to change anything
                 if (stagger == 0) {
                     return std::make_pair<uint64_t, bool>((uint64_t)0, (bool)wnaf_skew);
                 }
                 int fragment = static_cast<int>(fragment_u64);
-                // Inverse the fragment if it's negative
+                // Invert the fragment if it's negative
                 if (is_negative) {
                     fragment = -fragment;
                 }
-                // If the value is positive and there is a skew in wnaf, subtract 2ˢᵗᵃᵍᵍᵉʳ. If negative and there is
+                // If the value is positive and there is a skew in wnaf, subtract 2^stagger. If negative and there is
                 // skew, then add
                 if (!is_negative && wnaf_skew) {
                     fragment -= (1 << stagger);
@@ -198,8 +205,14 @@ typename element<C, Fq, Fr, G>::secp256k1_wnaf_pair element<C, Fq, Fr, G>::compu
                 if (fragment < 0) {
                     output_fragment = static_cast<uint64_t>((int)((1ULL << (wnaf_size - 1))) + (fragment / 2 - 1));
                 } else {
-                    output_fragment = static_cast<uint64_t>((1ULL << (wnaf_size - 1)) - 1ULL +
-                                                            (uint64_t)((uint64_t)fragment / 2 + 1));
+                    // For composite fields (bigfield), use fragment/2 + 1; for native fields, use fragment/2
+                    if constexpr (Fr::is_composite) {
+                        output_fragment = static_cast<uint64_t>((1ULL << (wnaf_size - 1)) - 1ULL +
+                                                                (uint64_t)((uint64_t)fragment / 2 + 1));
+                    } else {
+                        output_fragment =
+                            static_cast<uint64_t>((1ULL << (wnaf_size - 1)) + (uint64_t)((uint64_t)fragment / 2));
+                    }
                 }
 
                 return std::make_pair<uint64_t, bool>((uint64_t)output_fragment, (bool)output_skew);
@@ -221,7 +234,7 @@ typename element<C, Fq, Fr, G>::secp256k1_wnaf_pair element<C, Fq, Fr, G>::compu
                 bool predicate = bool((wnaf_values[i] >> 31U) & 1U);
                 uint64_t offset_entry;
                 // If the signs of current entry and the whole scalar are the same, then add the lowest bits of current
-                // wnaf value to the windows size to form an entry. Otherwise, subract the lowest bits along with 1
+                // wnaf value to the windows size to form an entry. Otherwise, subtract the lowest bits along with 1
                 if ((!predicate && !is_negative) || (predicate && is_negative)) {
                     // TODO: Why is this mask fixed?
                     offset_entry = wnaf_window_size + (wnaf_values[i] & 0xffffff);
@@ -253,86 +266,148 @@ typename element<C, Fq, Fr, G>::secp256k1_wnaf_pair element<C, Fq, Fr, G>::compu
             ctx->create_range_constraint((negative_skew + positive_skew).witness_index, 1, "biggroup_nafs");
         }
 
-        const auto reconstruct_bigfield_from_wnaf = [ctx](const std::vector<field_t<C>>& wnaf,
-                                                          const field_t<C>& positive_skew,
-                                                          const field_t<C>& stagger_fragment,
-                                                          const size_t stagger,
-                                                          const size_t rounds) {
-            std::vector<field_t<C>> accumulator;
-            // Collect positive wnaf entries for accumulation
-            for (size_t i = 0; i < rounds; ++i) {
-                field_t<C> entry = wnaf[rounds - 1 - i];
-                entry *= static_cast<field_t<C>>(uint256_t(1) << (i * wnaf_size));
-                accumulator.emplace_back(entry);
-            }
-            // Accumulate entries, shift by stagger and add the stagger itself
-            field_t<C> sum = field_t<C>::accumulate(accumulator);
-            sum = sum * field_t<C>(bb::fr(1ULL << stagger));
-            sum += (stagger_fragment);
-            sum = sum.normalize();
-            // TODO: improve efficiency by creating a constructor that does NOT require us to range constrain
-            //       limbs (we already know (sum < 2^{130}))
-            // Convert this value to bigfield element
-            Fr reconstructed = Fr(sum, field_t<C>::from_witness_index(ctx, ctx->zero_idx), false);
-            // Double the final value and add the skew
-            reconstructed = (reconstructed + reconstructed).add_to_lower_limb(positive_skew, uint256_t(1));
-            return reconstructed;
-        };
-
         // Initialize stagger witness
         field_t<C> stagger_fragment = witness_t<C>(ctx, first_fragment);
 
-        // Reconstruct bigfield x_pos
-        Fr wnaf_sum = reconstruct_bigfield_from_wnaf(
-            wnaf, positive_skew, stagger_fragment, stagger, num_rounds_excluding_stagger_bits);
+        // Reconstruction logic differs based on whether Fr is a composite (bigfield) or native (field_t) type
+        if constexpr (Fr::is_composite) {
+            // Bigfield reconstruction for secp256k1-style scalars
+            const auto reconstruct_bigfield_from_wnaf = [ctx](const std::vector<field_t<C>>& wnaf,
+                                                              const field_t<C>& positive_skew,
+                                                              const field_t<C>& stagger_fragment,
+                                                              const size_t stagger,
+                                                              const size_t rounds) {
+                std::vector<field_t<C>> accumulator;
+                // Collect positive wnaf entries for accumulation
+                for (size_t i = 0; i < rounds; ++i) {
+                    field_t<C> entry = wnaf[rounds - 1 - i];
+                    entry *= static_cast<field_t<C>>(uint256_t(1) << (i * wnaf_size));
+                    accumulator.emplace_back(entry);
+                }
+                // Accumulate entries, shift by stagger and add the stagger itself
+                field_t<C> sum = field_t<C>::accumulate(accumulator);
+                sum = sum * field_t<C>(bb::fr(1ULL << stagger));
+                sum += (stagger_fragment);
+                sum = sum.normalize();
+                // TODO: improve efficiency by creating a constructor that does NOT require us to range constrain
+                //       limbs (we already know (sum < 2^{130}))
+                // Convert this value to bigfield element
+                Fr reconstructed = Fr(sum, field_t<C>::from_witness_index(ctx, ctx->zero_idx), false);
+                // Double the final value and add the skew
+                reconstructed = (reconstructed + reconstructed).add_to_lower_limb(positive_skew, uint256_t(1));
+                return reconstructed;
+            };
 
-        // Start reconstructing x_neg
-        uint256_t negative_constant_wnaf_offset(0);
+            // Reconstruct bigfield x_pos
+            Fr wnaf_sum = reconstruct_bigfield_from_wnaf(
+                wnaf, positive_skew, stagger_fragment, stagger, num_rounds_excluding_stagger_bits);
 
-        // Construct 0xF..F
-        for (size_t i = 0; i < num_rounds_excluding_stagger_bits; ++i) {
-            negative_constant_wnaf_offset += uint256_t(wnaf_window_size * 2 - 1) * (uint256_t(1) << (i * wnaf_size));
+            // Start reconstructing x_neg
+            uint256_t negative_constant_wnaf_offset(0);
+
+            // Construct 0xF..F
+            for (size_t i = 0; i < num_rounds_excluding_stagger_bits; ++i) {
+                negative_constant_wnaf_offset +=
+                    uint256_t(wnaf_window_size * 2 - 1) * (uint256_t(1) << (i * wnaf_size));
+            }
+            // Shift by stagger
+            negative_constant_wnaf_offset = negative_constant_wnaf_offset << stagger;
+            // Add for stagger
+            if (stagger > 0) {
+                negative_constant_wnaf_offset += ((1ULL << wnaf_size) - 1ULL); // FROM STAGGER FRAGMENT
+            }
+
+            // TODO: improve efficiency by removing range constraint on lo_offset and hi_offset (we already know are
+            // boolean)
+            // Add the skew to the bigfield constant
+            Fr offset = Fr(nullptr, negative_constant_wnaf_offset).add_to_lower_limb(negative_skew, uint256_t(1));
+            // x_pos - x_neg
+            Fr reconstructed = wnaf_sum - offset;
+
+            wnaf_record wnaf_out{ .wnaf = wnaf,
+                                  .positive_skew = positive_skew,
+                                  .negative_skew = negative_skew,
+                                  .least_significant_wnaf_fragment = stagger_fragment,
+                                  .has_wnaf_fragment = (stagger > 0) };
+
+            return std::make_pair<Fr, wnaf_record>((Fr)reconstructed, (wnaf_record)wnaf_out);
+        } else {
+            // Native field reconstruction for BN254-style scalars
+            const auto reconstruct_field_from_wnaf = [](const std::vector<field_t<C>>& wnaf,
+                                                        const field_t<C>& positive_skew,
+                                                        const field_t<C>& stagger_fragment,
+                                                        const size_t stagger,
+                                                        const size_t rounds) {
+                std::vector<field_t<C>> accumulator;
+                for (size_t i = 0; i < rounds; ++i) {
+                    field_t<C> entry = wnaf[rounds - 1 - i];
+                    entry *= static_cast<field_t<C>>(uint256_t(1) << (i * wnaf_size));
+                    accumulator.emplace_back(entry);
+                }
+                field_t<C> sum = field_t<C>::accumulate(accumulator);
+                sum = sum * field_t<C>(bb::fr(1ULL << stagger));
+                sum = sum + stagger_fragment;
+                // For native field: reconstructed = 2*sum + positive_skew
+                field_t<C> reconstructed = sum.add_two(sum, positive_skew);
+                return reconstructed;
+            };
+
+            field_t<C> wnaf_sum = reconstruct_field_from_wnaf(
+                wnaf, positive_skew, stagger_fragment, stagger, num_rounds_excluding_stagger_bits);
+
+            // Compute the negative offset (sum of all (2^wnaf_size - 1) values)
+            uint256_t negative_constant_wnaf_offset(0);
+            for (size_t i = 0; i < num_rounds_excluding_stagger_bits; ++i) {
+                negative_constant_wnaf_offset +=
+                    uint256_t(wnaf_window_size * 2 - 1) * (uint256_t(1) << (i * wnaf_size));
+            }
+            negative_constant_wnaf_offset = negative_constant_wnaf_offset << stagger;
+            if (stagger > 0) {
+                negative_constant_wnaf_offset += ((1ULL << wnaf_size) - 1ULL);
+            }
+
+            // For native field: offset = negative_constant + negative_skew (NOT doubled!)
+            // Use constant instead of witness for the offset constant
+            field_t<C> offset_const = field_t<C>(ctx, bb::fr(negative_constant_wnaf_offset));
+            field_t<C> offset = offset_const + negative_skew;
+
+            field_t<C> reconstructed = wnaf_sum - offset;
+
+            wnaf_record wnaf_out{ .wnaf = wnaf,
+                                  .positive_skew = positive_skew,
+                                  .negative_skew = negative_skew,
+                                  .least_significant_wnaf_fragment = stagger_fragment,
+                                  .has_wnaf_fragment = (stagger > 0) };
+
+            return std::make_pair<Fr, wnaf_record>((Fr)reconstructed, (wnaf_record)wnaf_out);
         }
-        // Shift by stagger
-        negative_constant_wnaf_offset = negative_constant_wnaf_offset << stagger;
-        // Add for stagger
-        if (stagger > 0) {
-            negative_constant_wnaf_offset += ((1ULL << wnaf_size) - 1ULL); // FROM STAGGER FRAMGENT
-        }
-
-        // TODO: improve efficiency by removing range constraint on lo_offset and hi_offset (we already know are
-        // boolean)
-        // Add the skew to the bigfield constant
-        Fr offset = Fr(nullptr, negative_constant_wnaf_offset).add_to_lower_limb(negative_skew, uint256_t(1));
-        // x_pos - x_neg
-        Fr reconstructed = wnaf_sum - offset;
-
-        secp256k1_wnaf wnaf_out{ .wnaf = wnaf,
-                                 .positive_skew = positive_skew,
-                                 .negative_skew = negative_skew,
-                                 .least_significant_wnaf_fragment = stagger_fragment,
-                                 .has_wnaf_fragment = (stagger > 0) };
-
-        return std::make_pair<Fr, secp256k1_wnaf>((Fr)reconstructed, (secp256k1_wnaf)wnaf_out);
     };
 
-    secp256k1::fr k(scalar.get_value().lo);
-    secp256k1::fr klo(0);
-    secp256k1::fr khi(0);
+    // Get scalar value and split using endomorphism
+    // For composite fields, extract the lo part; for native fields, use directly
+    native_fr k;
+    if constexpr (Fr::is_composite) {
+        k = native_fr(scalar.get_value().lo);
+    } else {
+        k = native_fr(scalar.get_value());
+    }
+
+    native_fr klo(0);
+    native_fr khi(0);
     bool klo_negative = false;
     bool khi_negative = false;
-    secp256k1::fr::split_into_endomorphism_scalars(k.from_montgomery_form(), klo, khi);
+    native_fr::split_into_endomorphism_scalars(k.from_montgomery_form(), klo, khi);
 
     /* AUDITNOTE: it has been observed in testing that klo_negative is always false.
     On the other hand, khi_negative is sometimes true (e.g., in test_wnaf_secp256k1, take
     scalar_a = 0x3e3e7e9628094ee8942358f6daa1130790f5165d55705d83dad745c85f36807a). So it may be
     that this block is not needed. I could not quickly determine why this might be the case,
     so I leave it to the auditor to check whether the following if block is needed. */
-    if (klo.uint256_t_no_montgomery_conversion().get_msb() > 129) {
+    if (klo.uint256_t_no_montgomery_conversion().get_msb() > num_bits) {
         klo_negative = true;
         klo = -klo;
     }
-    if (khi.uint256_t_no_montgomery_conversion().get_msb() > 129) {
+    if (khi.uint256_t_no_montgomery_conversion().get_msb() > num_bits) {
         khi_negative = true;
         khi = -khi;
     }
@@ -340,215 +415,51 @@ typename element<C, Fq, Fr, G>::secp256k1_wnaf_pair element<C, Fq, Fr, G>::compu
     const auto [klo_reconstructed, klo_out] = compute_single_wnaf(klo, lo_stagger, klo_negative, true);
     const auto [khi_reconstructed, khi_out] = compute_single_wnaf(khi, hi_stagger, khi_negative, false);
 
-    uint256_t minus_lambda_val(-secp256k1::fr::cube_root_of_unity());
-    Fr minus_lambda(bb::fr(minus_lambda_val.slice(0, 136)), bb::fr(minus_lambda_val.slice(136, 256)), false);
+    // Validate reconstruction using appropriate method based on field type
+    if constexpr (Fr::is_composite) {
+        // For bigfield: use madd and validate all limbs
+        uint256_t minus_lambda_val(-native_fr::cube_root_of_unity());
+        Fr minus_lambda(bb::fr(minus_lambda_val.slice(0, 136)), bb::fr(minus_lambda_val.slice(136, 256)), false);
 
-    Fr reconstructed_scalar = khi_reconstructed.madd(minus_lambda, { klo_reconstructed });
+        Fr reconstructed_scalar = khi_reconstructed.madd(minus_lambda, { klo_reconstructed });
 
-    if (reconstructed_scalar.get_value() != scalar.get_value()) {
-        std::cerr << "biggroup_nafs: secp256k1 reconstructed wnaf does not match input! " << reconstructed_scalar
-                  << " vs " << scalar << std::endl;
+        if (reconstructed_scalar.get_value() != scalar.get_value()) {
+            std::cerr << "biggroup_nafs: reconstructed wnaf does not match input! " << reconstructed_scalar << " vs "
+                      << scalar << std::endl;
+        }
+        scalar.binary_basis_limbs[0].element.assert_equal(reconstructed_scalar.binary_basis_limbs[0].element);
+        scalar.binary_basis_limbs[1].element.assert_equal(reconstructed_scalar.binary_basis_limbs[1].element);
+        scalar.binary_basis_limbs[2].element.assert_equal(reconstructed_scalar.binary_basis_limbs[2].element);
+        scalar.binary_basis_limbs[3].element.assert_equal(reconstructed_scalar.binary_basis_limbs[3].element);
+        scalar.prime_basis_limb.assert_equal(reconstructed_scalar.prime_basis_limb);
+    } else {
+        // For native field: use simple field arithmetic
+        bb::fr lambda = bb::fr::cube_root_of_unity();
+        field_t<C> minus_lambda_field = witness_t<C>(ctx, -lambda);
+
+        // Reconstruct: scalar = k1 - k2 * lambda (native field_t operations)
+        Fr reconstructed_scalar = klo_reconstructed + khi_reconstructed * minus_lambda_field;
+
+        // Validate reconstruction
+        scalar.assert_equal(reconstructed_scalar);
     }
-    scalar.binary_basis_limbs[0].element.assert_equal(reconstructed_scalar.binary_basis_limbs[0].element);
-    scalar.binary_basis_limbs[1].element.assert_equal(reconstructed_scalar.binary_basis_limbs[1].element);
-    scalar.binary_basis_limbs[2].element.assert_equal(reconstructed_scalar.binary_basis_limbs[2].element);
-    scalar.binary_basis_limbs[3].element.assert_equal(reconstructed_scalar.binary_basis_limbs[3].element);
-    scalar.prime_basis_limb.assert_equal(reconstructed_scalar.prime_basis_limb);
 
     return { .klo = klo_out, .khi = khi_out };
 }
 
-/**
- * @brief Compute BN254 endomorphism-based wNAF with stagger bits for montgomery ladder optimization
- *
- * Adapted for BN254 curve with NATIVE field arithmetic (field_t, not bigfield):
- * - Uses BN254's endomorphism to split 254-bit scalar into two ~128-bit scalars
- * - Stagger bits enable montgomery ladder pattern: klo uses lo_stagger bits, khi uses hi_stagger bits
- * - For 14-bit windows with 2-bit klo stagger and 3-bit khi stagger: 128 bits = 9×14 + 2/3 stagger bits
- */
+// Wrapper functions for backwards compatibility
+template <typename C, class Fq, class Fr, class G>
+template <size_t wnaf_size, size_t lo_stagger, size_t hi_stagger>
+typename element<C, Fq, Fr, G>::secp256k1_wnaf_pair element<C, Fq, Fr, G>::compute_secp256k1_endo_wnaf(const Fr& scalar)
+{
+    return compute_endo_wnaf<129, wnaf_size, lo_stagger, hi_stagger>(scalar);
+}
+
 template <typename C, class Fq, class Fr, class G>
 template <size_t wnaf_size, size_t lo_stagger, size_t hi_stagger>
 typename element<C, Fq, Fr, G>::bn254_wnaf_pair element<C, Fq, Fr, G>::compute_bn254_endo_wnaf(const Fr& scalar)
 {
-    C* ctx = scalar.context;
-    constexpr size_t num_bits = 128; // BN254 endomorphism splits into ~128-bit scalars
-
-    /**
-     * @brief Compute WNAF of a single 128-bit scalar (native field_t version for BN254)
-     *
-     * @param k Scalar
-     * @param stagger The number of bits that are used in "staggering"
-     * @param is_negative If it should be subtracted
-     * @param is_lo True if it's the low scalar (uses lo_stagger), false if high scalar (uses hi_stagger)
-     */
-    const auto compute_single_wnaf = [ctx](const bb::fr& k, const auto stagger, const bool is_negative, const bool is_lo) {
-        constexpr size_t num_rounds = ((num_bits + wnaf_size - 1) / wnaf_size);
-        const uint64_t stagger_mask = (1ULL << stagger) - 1;
-        const uint64_t stagger_scalar = k.data[0] & stagger_mask;
-
-        uint64_t wnaf_values[num_rounds] = { 0 };
-        bool skew_without_stagger;
-        uint256_t k_u256{ k.data[0], k.data[1], k.data[2], k.data[3] };
-        k_u256 = k_u256 >> stagger;
-        if (is_lo) {
-            bb::wnaf::fixed_wnaf<num_bits - lo_stagger, 1, wnaf_size>(
-                &k_u256.data[0], &wnaf_values[0], skew_without_stagger, 0);
-        } else {
-            bb::wnaf::fixed_wnaf<num_bits - hi_stagger, 1, wnaf_size>(
-                &k_u256.data[0], &wnaf_values[0], skew_without_stagger, 0);
-        }
-
-        const size_t num_rounds_excluding_stagger_bits = ((num_bits + wnaf_size - 1 - stagger) / wnaf_size);
-
-        const auto compute_staggered_wnaf_fragment =
-            [](const uint64_t fragment_u64, const uint64_t stagger, bool is_negative, bool wnaf_skew) {
-                if (stagger == 0) {
-                    return std::make_pair<uint64_t, bool>((uint64_t)0, (bool)wnaf_skew);
-                }
-                int fragment = static_cast<int>(fragment_u64);
-                if (is_negative) {
-                    fragment = -fragment;
-                }
-                if (!is_negative && wnaf_skew) {
-                    fragment -= (1 << stagger);
-                } else if (is_negative && wnaf_skew) {
-                    fragment += (1 << stagger);
-                }
-                bool output_skew = (fragment_u64 % 2) == 0;
-                if (!is_negative && output_skew) {
-                    fragment += 1;
-                } else if (is_negative && output_skew) {
-                    fragment -= 1;
-                }
-
-                uint64_t output_fragment;
-                if (fragment < 0) {
-                    output_fragment = static_cast<uint64_t>((int)((1ULL << (wnaf_size - 1))) + (fragment / 2 - 1));
-                } else {
-                    output_fragment = static_cast<uint64_t>((1ULL << (wnaf_size - 1)) + (uint64_t)((uint64_t)fragment / 2));
-                }
-
-                return std::make_pair<uint64_t, bool>((uint64_t)output_fragment, (bool)output_skew);
-            };
-
-        const auto [first_fragment, skew] =
-            compute_staggered_wnaf_fragment(stagger_scalar, stagger, is_negative, skew_without_stagger);
-
-        constexpr uint64_t wnaf_window_size = (1ULL << (wnaf_size - 1));
-
-        const auto get_wnaf_wires = [ctx](uint64_t* wnaf_values, bool is_negative, size_t rounds) {
-            std::vector<field_t<C>> wnaf_entries;
-            for (size_t i = 0; i < rounds; ++i) {
-                bool predicate = bool((wnaf_values[i] >> 31U) & 1U);
-                uint64_t offset_entry;
-                if ((!predicate && !is_negative) || (predicate && is_negative)) {
-                    offset_entry = wnaf_window_size + (wnaf_values[i] & 0xffffff);
-                } else {
-                    offset_entry = wnaf_window_size - 1 - (wnaf_values[i] & 0xffffff);
-                }
-                field_t<C> entry(witness_t<C>(ctx, offset_entry));
-                entry.create_range_constraint(wnaf_size);
-                wnaf_entries.emplace_back(entry);
-            }
-            return wnaf_entries;
-        };
-
-        std::vector<field_t<C>> wnaf = get_wnaf_wires(&wnaf_values[0], is_negative, num_rounds_excluding_stagger_bits);
-
-        field_t<C> negative_skew = witness_t<C>(ctx, is_negative ? 0 : skew);
-        field_t<C> positive_skew = witness_t<C>(ctx, is_negative ? skew : 0);
-        if constexpr (HasPlookup<C>) {
-            ctx->create_new_range_constraint(negative_skew.witness_index, 1, "biggroup_nafs");
-            ctx->create_new_range_constraint(positive_skew.witness_index, 1, "biggroup_nafs");
-            ctx->create_new_range_constraint((negative_skew + positive_skew).witness_index, 1, "biggroup_nafs");
-        } else {
-            ctx->create_range_constraint(negative_skew.witness_index, 1, "biggroup_nafs");
-            ctx->create_range_constraint(positive_skew.witness_index, 1, "biggroup_nafs");
-            ctx->create_range_constraint((negative_skew + positive_skew).witness_index, 1, "biggroup_nafs");
-        }
-
-        // Reconstruct scalar using native field_t arithmetic (not bigfield!)
-        const auto reconstruct_field_from_wnaf = [](const std::vector<field_t<C>>& wnaf,
-                                                    const field_t<C>& positive_skew,
-                                                    const field_t<C>& stagger_fragment,
-                                                    const size_t stagger,
-                                                    const size_t rounds) {
-            std::vector<field_t<C>> accumulator;
-            for (size_t i = 0; i < rounds; ++i) {
-                field_t<C> entry = wnaf[rounds - 1 - i];
-                entry *= static_cast<field_t<C>>(uint256_t(1) << (i * wnaf_size));
-                accumulator.emplace_back(entry);
-            }
-            field_t<C> sum = field_t<C>::accumulate(accumulator);
-            sum = sum * field_t<C>(bb::fr(1ULL << stagger));
-            sum = sum + stagger_fragment;
-            // For native field: reconstructed = 2*sum + positive_skew
-            field_t<C> reconstructed = sum.add_two(sum, positive_skew);
-            return reconstructed;
-        };
-
-        field_t<C> stagger_fragment = witness_t<C>(ctx, first_fragment);
-        field_t<C> wnaf_sum = reconstruct_field_from_wnaf(
-            wnaf, positive_skew, stagger_fragment, stagger, num_rounds_excluding_stagger_bits);
-
-        // Compute the negative offset (sum of all (2^wnaf_size - 1) values)
-        uint256_t negative_constant_wnaf_offset(0);
-        for (size_t i = 0; i < num_rounds_excluding_stagger_bits; ++i) {
-            negative_constant_wnaf_offset += uint256_t(wnaf_window_size * 2 - 1) * (uint256_t(1) << (i * wnaf_size));
-        }
-        negative_constant_wnaf_offset = negative_constant_wnaf_offset << stagger;
-        if (stagger > 0) {
-            negative_constant_wnaf_offset += ((1ULL << wnaf_size) - 1ULL);
-        }
-
-        // For native field: offset = negative_constant + negative_skew (NOT doubled!)
-        // Use constant instead of witness for the offset constant
-        field_t<C> offset_const = field_t<C>(ctx, bb::fr(negative_constant_wnaf_offset));
-        field_t<C> offset = offset_const + negative_skew;
-
-        field_t<C> reconstructed = wnaf_sum - offset;
-
-        bn254_wnaf wnaf_out{ .wnaf = wnaf,
-                             .positive_skew = positive_skew,
-                             .negative_skew = negative_skew,
-                             .least_significant_wnaf_fragment = stagger_fragment,
-                             .has_wnaf_fragment = (stagger > 0) };
-
-        return std::make_pair<field_t<C>, bn254_wnaf>((field_t<C>)reconstructed, (bn254_wnaf)wnaf_out);
-    };
-
-    // Split scalar using BN254 endomorphism
-    bb::fr k(scalar.get_value());
-    bb::fr k1(0);
-    bb::fr k2(0);
-    bool k1_negative = false;
-    bool k2_negative = false;
-    bb::fr::split_into_endomorphism_scalars(k.from_montgomery_form(), k1, k2);
-
-    // Check if we need to negate to keep within 128 bits
-    if (k1.uint256_t_no_montgomery_conversion().get_msb() > 128) {
-        k1_negative = true;
-        k1 = -k1;
-    }
-    if (k2.uint256_t_no_montgomery_conversion().get_msb() > 128) {
-        k2_negative = true;
-        k2 = -k2;
-    }
-
-    const auto [k1_reconstructed, k1_out] = compute_single_wnaf(k1, lo_stagger, k1_negative, true);
-    const auto [k2_reconstructed, k2_out] = compute_single_wnaf(k2, hi_stagger, k2_negative, false);
-
-    // BN254 cube root of unity (lambda) - use native field arithmetic
-    bb::fr lambda = bb::fr::cube_root_of_unity();
-    field_t<C> minus_lambda_field = witness_t<C>(ctx, -lambda);
-
-    // Reconstruct: scalar = k1 - k2 * lambda (native field_t operations)
-    field_t<C> reconstructed_scalar = k1_reconstructed + k2_reconstructed * minus_lambda_field;
-
-    // Validate reconstruction
-    scalar.assert_equal(reconstructed_scalar);
-
-    return { .klo = k1_out, .khi = k2_out };
+    return compute_endo_wnaf<128, wnaf_size, lo_stagger, hi_stagger>(scalar);
 }
 
 template <typename C, class Fq, class Fr, class G>
